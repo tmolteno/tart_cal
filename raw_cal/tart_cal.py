@@ -253,6 +253,7 @@ def de_callback(xk, convergence):
     print("DE at {} conv={}".format(xk, convergence))
     output_param(xk)
 
+import glob
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -266,25 +267,11 @@ if __name__ == "__main__":
         help="Telescope API server URL.",
     )
     parser.add_argument(
-        "--file",
+        "--data",
         required=False,
-        default="calibration_data.json",
-        help="Calibration Output JSON file.",
+        default="cal_data",
+        help="Calibration Output Data Directory.",
     )
-    
-    parser.add_argument(
-        "--raw",
-        required=False,
-        default="cal_raw_data.hdf",
-        help="Calibration Raw Data file.",
-    )
-    
-    #parser.add_argument(
-        #"--influx",
-        #required=False,
-        #default=None,
-        #help="Use an influxdb  (https://tartinflux.max.ac.nz/) for cal data.",
-    #)
     
     parser.add_argument("--show", action="store_true", help="show instead of save.")
     parser.add_argument(
@@ -319,15 +306,19 @@ if __name__ == "__main__":
 
     ARGS = parser.parse_args()
 
-    # Load calibration data
-    with open(ARGS.file, "r") as json_file:
+    # Load calibration data from the data directory
+    
+    data_dir = ARGS.data
+    json_files = [f for f in glob.glob(f"{data_dir}/*.json")]
+    raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
+
+
+    with open(json_files[0], "r") as json_file:
         calib_info = json.load(json_file)
+        
     info = calib_info["info"]
     ant_pos = calib_info["ant_pos"]
     config = settings.from_api_json(info["info"], ant_pos)
-
-
-
     
     flag_list = []  # [4, 5, 14, 22] # optionally remove some unused antennas
 
@@ -350,19 +341,20 @@ if __name__ == "__main__":
     if ARGS.cold_start:
         gains = np.ones(len(gains_json["gain"]))
         phase_offsets = np.zeros(len(gains_json["phase_offset"]))
-    if ARGS.get_gains:
-        api = api_handler.APIhandler(ARGS.api)
-        gains_json = api.get("calibration/gain")
-        gains = np.asarray(gains_json["gain"])
-        phase_offsets = np.asarray(gains_json["phase_offset"])
 
     config = settings.from_api_json(info["info"], ant_pos)
 
     init_parameters = join_param(0.0, gains, phase_offsets)
     output_param(init_parameters)
 
+
     measurements = []
-    for d in calib_info["data"]:
+    for json_file, raw_file in zip(json_files, raw_files):
+        with open(json_file, "r") as jf:
+            calib_info = json.load(jf)
+            
+        d = calib_info["data"][0]
+        print(d)
         vis_json, src_json = d
         cv, ts, src_list = load_data_from_json(
             vis_json,
@@ -387,20 +379,16 @@ if __name__ == "__main__":
             except:
                 print(prn)
 
-        measurements.append([cv, ts, src_list, prn_list])
+        # Load the data here from the raw file
+        obs = observation.Observation_Load(raw_file)
+        corr = correlator.Correlator()
+        vis = corr.correlate(obs)
+        print(f"Timestamp: {vis.timestamp}")
+        print(f"Config: {vis.config.Dict}")
+
+        measurements.append([cv, ts, src_list, prn_list, obs])
 
     # Acquisition to get expected list of SV's
-    
-    # Load raw data
-    #obs = observation.Observation_Load(ARGS.raw)
-    #corr = correlator.Correlator()
-    #vis = corr.correlate(obs)
-    #print(f"Timestamp: {vis.timestamp}")
-    #print(f"Config: {vis.config.Dict}")
-    #print(f"Baselines: {vis.baselines}")
-    #print(f"visibilities: {vis.v}")
-
-
 
     
     try:
@@ -409,18 +397,7 @@ if __name__ == "__main__":
     except:
         full_acquisition_data = {}
         for m in measurements:
-            cv, ts, src_list, prn_list = m
-            
-            print(ts)
-            filename = f"{ts}.hdf"
-            # Load the data here from the correct file
-            obs = observation.Observation_Load(filename)
-            corr = correlator.Correlator()
-            vis = corr.correlate(obs)
-            print(f"Timestamp: {vis.timestamp}")
-            print(f"Config: {vis.config.Dict}")
-
-
+            cv, ts, src_list, prn_list, obs = m
             
             acquisition_data = {'ts': ts}
             num_antenna = obs.config.get_num_antenna()
