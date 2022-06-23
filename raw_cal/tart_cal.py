@@ -395,13 +395,13 @@ if __name__ == "__main__":
         with open(f"{output_directory}/gps_acquisition.json", "r") as fp:
             full_acquisition_data = json.load(fp)
     except:
-        full_acquisition_data = {}
+        full_acquisition_data = []
         for m in measurements:
             cv, ts, src_list, prn_list, obs = m
             
-            acquisition_data = {'ts': ts}
+            acquisition_data = {}
             num_antenna = obs.config.get_num_antenna()
-            
+            sampling_freq = obs.get_sampling_rate()
             for svinfo in prn_list:
                 prn_i, sv = svinfo
                 if (prn_i <= 32):
@@ -416,8 +416,12 @@ if __name__ == "__main__":
                         ant_i = obs.get_antenna(i)
                         mean_i = np.mean(ant_i)
 
-                        [prn, strength, phase, freq] = acquire(ant_i - mean_i, 
-                                sampling_freq=obs.get_sampling_rate(), 
+                        raw_data = ant_i - mean_i
+                        
+                        num_samples_per_ms = sampling_freq // 1000
+                        num_samples = int(2*num_samples_per_ms)
+                        [prn, strength, phase, freq] = acquire(raw_data[0:num_samples], 
+                                sampling_freq=sampling_freq, 
                                 center_freq=4.092e6, searchBand=6000, PRN=prn_i, debug=False)
                         
                         strengths.append(strength)
@@ -440,8 +444,8 @@ if __name__ == "__main__":
     print("Finding visible satellites")
     
     for acquisition_data in full_acquisition_data:
+        print(acquisition_data.keys())
         for d in acquisition_data:
-            print(d, acquisition_data)
             acq = acquisition_data[int(d)]
             ph = np.array(acq['phases'])
             st = np.array(acq['strengths'])
