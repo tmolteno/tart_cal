@@ -391,14 +391,37 @@ if __name__ == "__main__":
 
     # Acquisition to get expected list of SV's
     
-    
+    # Load raw data
+    #obs = observation.Observation_Load(ARGS.raw)
+    #corr = correlator.Correlator()
+    #vis = corr.correlate(obs)
+    #print(f"Timestamp: {vis.timestamp}")
+    #print(f"Config: {vis.config.Dict}")
+    #print(f"Baselines: {vis.baselines}")
+    #print(f"visibilities: {vis.v}")
+
+
+
     
     try:
         with open(f"{output_directory}/gps_acquisition.json", "r") as fp:
             full_acquisition_data = json.load(fp)
     except:
+        full_acquisition_data = {}
         for m in measurements:
             cv, ts, src_list, prn_list = m
+            
+            print(ts)
+            filename = f"{ts}.hdf"
+            # Load the data here from the correct file
+            obs = observation.Observation_Load(filename)
+            corr = correlator.Correlator()
+            vis = corr.correlate(obs)
+            print(f"Timestamp: {vis.timestamp}")
+            print(f"Config: {vis.config.Dict}")
+
+
+            
             acquisition_data = {'ts': ts}
             num_antenna = obs.config.get_num_antenna()
             
@@ -441,7 +464,8 @@ if __name__ == "__main__":
     
     for acquisition_data in full_acquisition_data:
         for d in acquisition_data:
-            acq = acquisition_data[d]
+            print(d, acquisition_data)
+            acq = acquisition_data[int(d)]
             ph = np.array(acq['phases'])
             st = np.array(acq['strengths'])
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
