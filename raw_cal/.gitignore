@@ -1,0 +1,5 @@
+wisdom.wis
+*.hdf
+*.json
+__pycache__
+*.png
