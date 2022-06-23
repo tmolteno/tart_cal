@@ -454,7 +454,6 @@ if __name__ == "__main__":
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
         
-    raise RuntimeError("Abandon")
     N_IT = 0
     window_deg = 4.0
 

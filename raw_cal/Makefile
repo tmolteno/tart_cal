@@ -10,4 +10,4 @@ image:
 
 
 data:
-	PW=${PW} sh get_cal_data.sh
+	python3 get_cal_data.py --pw ${PW} --n 1 --interval 5 --dir cal_data
