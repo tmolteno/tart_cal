@@ -15,8 +15,8 @@ mkdir -p ~/calibration_results
 # TART_CAL_INT = 30 # minutes between measurements
 
 docker run --rm \
-    -e TART_LOGIN_PW=$1 \
-    -e TART_API=https://tart.elec.ac.nz/signal/ \
+    -e TART_LOGIN_PW=$2 \
+    -e TART_API=https://tart.elec.ac.nz/$1/ \
     -e TART_NCAL=1 \
     -e TART_CAL_INT=30 \
     -v ~/calibration_results:/app \

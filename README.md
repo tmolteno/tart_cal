@@ -33,14 +33,11 @@ docker-compose stop  # stop calibration run?
 
 ## Docker Usage
 
-The easiest way to build this is to use docker. To build the container type:
+The easiest way to build this is to use docker. The continer is in the github container registry, so the following command will work (where "passwd" is the password to your telescope web api server):
 
-    sh build.sh
+    sh run.sh rhodes passwd
 
-To execute the container type (where "passwd" is the password to your telescope web api server):
-
-    sh run.sh passwd
-
+This will calibrate the telescope at the API endpoint 'rhodes' with password 'passwd'
 
 ### Stoping or Killing the instance
 
@@ -53,11 +50,13 @@ To execute the container type (where "passwd" is the password to your telescope 
 
 Add this command as a cron job. Modify the TART_LOGIN_PW and TART_API to refer to the URL of your TART telescope. Recommended interval is every two hours.
 
-    docker run -d \
-        -e TART_LOGIN_PW=$1 \
+    docker run --rm \
+        -e TART_LOGIN_PW=<your password here> \
         -e TART_API=https://tart.elec.ac.nz/signal/ \
+        -e TART_NCAL=3 \
+        -e TART_CAL_INT=30 \
         -v ~/calibration_results:/app \
-        --name=cal -it  calibration_server
+        --name=cal ghcr.io/tmolteno/tart_cal /tart_calibrate.sh
     
 ### Debugging
 
