@@ -17,7 +17,7 @@ mkdir -p ~/calibration_results
 docker run --rm \
     -e TART_LOGIN_PW=$2 \
     -e TART_API=https://tart.elec.ac.nz/$1/ \
-    -e TART_NCAL=1 \
-    -e TART_CAL_INT=30 \
+    -e TART_NCAL=2 \
+    -e TART_CAL_INT=10 \
     -v ~/calibration_results:/app \
     --name=cal ghcr.io/tmolteno/tart_cal /tart_calibrate.sh

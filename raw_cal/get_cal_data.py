@@ -147,6 +147,8 @@ if __name__ == "__main__":
             logger.info("Sleeping {} minutes".format(ARGS.interval))
             time.sleep(ARGS.interval * 60)
     ret["data"] = data
-    with open(ARGS.file, "w") as fp:
+    
+    
+    with open(f"{ARGS.dir}/{ARGS.file}", "w") as fp:
         json.dump(ret, fp, indent=4, separators=(",", ": "))
 

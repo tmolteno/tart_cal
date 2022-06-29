@@ -88,7 +88,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     ant_idxs = np.arange(24)
 
     for m in measurements:
-        cv, ts, src_list = m
+        cv, ts, src_list, prn_list, obs = m
 
         cv.set_phase_offset(ant_idxs, phase_offsets)
         cv.set_gain(ant_idxs, gains)
@@ -392,7 +392,7 @@ if __name__ == "__main__":
 
     
     try:
-        with open(f"{output_directory}/gps_acquisition.json", "r") as fp:
+        with open(f"{data_dir}/gps_acquisition.json", "r") as fp:
             full_acquisition_data = json.load(fp)
     except:
         full_acquisition_data = []
@@ -437,7 +437,7 @@ if __name__ == "__main__":
                     print(acquisition_data[f"{prn_i}"])
             full_acquisition_data.append(acquisition_data)
 
-        with open(f"{output_directory}/gps_acquisition.json", "w") as fp:
+        with open(f"{data_dir}/gps_acquisition.json", "w") as fp:
             json.dump(full_acquisition_data, fp, indent=4, separators=(",", ": "))
 
     # Use the standard deviation of the phases to determine whether the SV is visible.

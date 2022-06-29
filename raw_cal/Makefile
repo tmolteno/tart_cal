@@ -1,8 +1,10 @@
-API=https://tart.elec.ac.nz/signal
+TARGET=signal
+API=https://tart.elec.ac.nz/${TARGET}
 PW=<password>
 
+DIR=cal_data_${TARGET}
 cal:
-	python3 tart_cal.py --data cal_data
+	python3 tart_cal.py --api ${API} --data ${DIR}
 	
 	
 image:
@@ -10,4 +12,5 @@ image:
 
 
 data:
-	python3 get_cal_data.py --pw ${PW} --n 1 --interval 5 --dir cal_data
+	rm -f ${DIR}/*
+	python3 get_cal_data.py --api ${API} --pw ${PW} --n 1 --interval 5 --dir ${DIR}
