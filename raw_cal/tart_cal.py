@@ -44,17 +44,17 @@ ik_index = None
 from acquisition import acquire
 
 def split_param(x):
-    rot_degrees = x[0]
+    rot_rad = x[0]
     re = np.concatenate(([1], x[1:24]))
     im = np.concatenate(([0], x[24:47]))
     gains = np.sqrt(re * re + im * im)
     phase_offsets = np.arctan2(im, re)
-    return rot_degrees, gains, phase_offsets
+    return rot_rad, gains, phase_offsets
 
 
-def join_param(rot_degrees, gains, phase_offsets):
+def join_param(rot_rad, gains, phase_offsets):
     ret = np.zeros(47)
-    ret[0] = rot_degrees
+    ret[0] = rot_rad
     z = gains[1:24] * np.exp(phase_offsets[1:24] * 1j)
     ret[1:24] = z.real
     ret[24:47] = z.imag
@@ -62,10 +62,10 @@ def join_param(rot_degrees, gains, phase_offsets):
 
 
 def param_to_json(x):
-    rot_degrees, gains, phase_offsets = split_param(x)
+    rot_rad, gains, phase_offsets = split_param(x)
     ret = {
         "gain": np.round(gains, 4).tolist(),
-        "rot_degrees": rot_degrees,
+        "rot_degrees": np.degrees(rot_rad),
         "phase_offset": np.round(phase_offsets, 4).tolist(),
     }
     return ret
@@ -81,7 +81,7 @@ def output_param(x, fp=None):
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
     global triplets, ij_index, jk_index, ik_index, masks
-    rot_degrees, gains, phase_offsets = split_param(opt_parameters)
+    rot_rad, gains, phase_offsets = split_param(opt_parameters)
 
     ret_zone = 0.0
     ret_std = 0.0
@@ -93,7 +93,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
         cv.set_phase_offset(ant_idxs, phase_offsets)
         cv.set_gain(ant_idxs, gains)
-        api_imaging.rotate_vis(rot_degrees, cv, original_positions)
+        api_imaging.rotate_vis(np.degrees(rot_rad), cv, original_positions)
 
         n_bin = 2 ** 7
         cal_ift, cal_extent, n_fft, bin_width = api_imaging.image_from_calibrated_vis(
@@ -122,15 +122,6 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
         mask = masks[i]
         zone_score = -np.sum(mask * ift_scaled)
-        #zones = []
-        #for s in src_list:
-            ## Get a pixel window around each source...
-            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
-            ## Integrate the brightness in a window around that source
-            #s_px = ift_scaled[y_min:y_max, x_min:x_max]
-            #zones.append(np.sum(s_px) / area)
-        #zones = np.array(zones)
-        #zone_score = -np.mean(zones)
 
         ret_zone += 4 * zone_score
 
@@ -147,61 +138,6 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     )
 
 
-#def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    #global triplets, ij_index, jk_index, ik_index
-    #rot_degrees, gains, phase_offsets = split_param(opt_parameters)
-
-    #ret_zone = 0.0
-    #ret_std = 0.0
-
-    #ant_idxs = np.arange(24)
-
-    #for m in measurements:
-        #cv, ts, src_list, prn_list, obs = m
-
-        #cv.set_phase_offset(ant_idxs, phase_offsets)
-        #cv.set_gain(ant_idxs, gains)
-        #api_imaging.rotate_vis(rot_degrees, cv, original_positions)
-
-        #n_bin = 2 ** 7
-        #cal_ift, cal_extent, n_fft, bin_width = api_imaging.image_from_calibrated_vis(
-            #cv, nw=n_bin / 4, num_bin=n_bin
-        #)
-
-        #abs_ift = np.abs(cal_ift)
-        #ift_std = np.std(abs_ift)
-        #ift_scaled = abs_ift / ift_std
-
-        #ret_std += -np.sqrt(ift_scaled.max())  # Peak signal to noise.
-
-
-        #zones = []
-        #for s in src_list:
-            ## Get a pixel window around each source...
-            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
-            
-            ## Integrate the brightness in a window around that source
-            #s_px = ift_scaled[y_min:y_max, x_min:x_max]
-
-            #zones.append(np.sum(s_px) / area)
-            
-        #zones = np.array(zones)
-        
-        #zone_score = -np.mean(zones)
-
-        #ret_zone += 2 * zone_score
-
-    #if N_IT % 100 == 0:
-        #print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
-
-    #return (
-        #(ret_std + ret_zone) / len(measurements),
-        #ift_scaled,
-        #src_list,
-        #n_fft,
-        #bin_width,
-    #)
-
 
 def load_data_from_json(
     vis_json, src_json, config, gains, phases, flag_list, el_threshold
@@ -210,82 +146,6 @@ def load_data_from_json(
     cv, ts = api_imaging.vis_calibrated(vis_json, config, gains, phases, flag_list)
     src_list = elaz.from_json(src_json, el_threshold)
     return cv, ts, src_list
-
-
-def get_window(x_i, y_i, d):
-    x_min = int(np.floor(x_i - d))
-    x_max = int(np.ceil(x_i + d))
-    y_min = int(np.floor(y_i - d))
-    y_max = int(np.ceil(y_i + d))
-    return x_min, x_max, y_min, y_max
-
-
-#def calc_score(
-    #opt_parameters,
-    #config,
-    #measurements,
-    #window_deg,
-    #original_positions,
-    #update=False,
-    #show=False,
-#):
-    #global N_IT, method, output_directory, f_vs_iteration
-
-    #ret, ift_scaled, src_list, n_fft, bin_width = calc_score_aux(
-        #opt_parameters, measurements, window_deg, original_positions
-    #)
-
-    #if N_IT % 100 == 0:
-        #print(f"Iteration {N_IT}, score={ret}")
-        #f_vs_iteration.append(ret)
-
-    #if N_IT % 1000 == 0:
-
-        #ift_sel = np.zeros_like(ift_scaled)
-
-        #for s in src_list:
-            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
-            #ift_sel[y_min:y_max, x_min:x_max] = ift_scaled[y_min:y_max, x_min:x_max]
-        #x_list, y_list = elaz.get_source_coordinates(src_list)
-
-        #plt.figure()
-        #plt.imshow(
-            #ift_sel,
-            #extent=[-1, 1, -1, 1],
-            #vmin=0,
-        #)  # vmax=8
-        #plt.colorbar()
-        #plt.xlim(1, -1)
-        #plt.ylim(-1, 1)
-        #plt.scatter(x_list, y_list, c="red", s=5)
-        #plt.xlabel("East-West")
-        #plt.ylabel("North-South")
-        #plt.tight_layout()
-        #plt.savefig("{}/opt_slice_{:05d}.png".format(output_directory, N_IT))
-        #plt.close()
-
-        #plt.figure()
-        #plt.imshow(
-            #ift_scaled,
-            #extent=[-1, 1, -1, 1],
-            #vmin=0,
-        #)  # vmax=8
-        #plt.colorbar()
-        #plt.xlim(1, -1)
-        #plt.ylim(-1, 1)
-        #plt.title(ret)
-        #plt.scatter(x_list, y_list, c="red", s=5)
-        #plt.xlabel("East-West")
-        #plt.ylabel("North-South")
-        #plt.tight_layout()
-        #plt.savefig(
-            #"{}/{}_{:5.3f}_opt_full_{:05d}.png".format(
-                #output_directory, method, ret, N_IT
-            #)
-        #)
-        #plt.close()
-    #N_IT += 1
-    #return ret
 
 
 
@@ -582,12 +442,24 @@ if __name__ == "__main__":
     # Use the standard deviation of the phases to determine whether the SV is visible.
     print("Finding visible satellites")
     
+    best_acq = -1
+    best_score = -999
     for acquisition_data in full_acquisition_data:
         print(acquisition_data.keys())
         for d in acquisition_data:
             acq = acquisition_data[d]
             ph = np.array(acq['phases'])
             st = np.array(acq['strengths'])
+
+            mean_str = np.median(st)
+            score = np.max(mean_str - st)
+
+            print(f"score={score}")
+            if score > best_score:
+                print(f"Best {d} score={score}")
+                best_score = score
+                best_acq = st / 6.7
+
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
 
     # Now remove satellites from the catalog that we can't see.
@@ -616,15 +488,17 @@ if __name__ == "__main__":
         show=False,
     )
 
-    bounds = [(-5, 5)]  # Bounds for the rotation parameter
+    bounds = [(-np.pi, np.pi)]  # Bounds for the rotation parameter
     for i in range(46):
-        bounds.append((-1.2, 1.2)) # Bounds for all other parameters (real and imaginary components)
+        bounds.append((-2, 2)) # Bounds for all other parameters (real and imaginary components)
 
+    print(f"Calculating which antennas to ignore {best_acq}")
     zero_list = ARGS.ignore
     if zero_list is not None:
         print(f"Ignoring antennas {zero_list}")
-        for i in range(24):
-            if i in zero_list:
+        for i,a in enumerate(best_acq):
+            if a < 1:
+                print(a,i)
                 bounds[i] = (-0.01, 0.01)
                 bounds[i+23] = (-0.01, 0.01)
 
@@ -658,14 +532,14 @@ if __name__ == "__main__":
         with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
-    rot_degrees = ret.x[0]
+    rot_rad = ret.x[0]
     output_json = param_to_json(ret.x)
     output_json["message"] = ret.message
     output_json["optimum"] = ret.fun
     output_json["iterations"] = ret.nit
 
     new_positions = settings.rotate_location(
-        rot_degrees, np.array(original_positions).T
+        np.degrees(rot_rad), np.array(original_positions).T
     )
     print(new_positions)
     pos_list = (np.array(new_positions).T).tolist()
