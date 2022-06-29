@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import argparse
 import numpy as np
 import time
+import os
 
 from copy import deepcopy
 
@@ -79,7 +80,7 @@ def output_param(x, fp=None):
 
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index
+    global triplets, ij_index, jk_index, ik_index, masks
     rot_degrees, gains, phase_offsets = split_param(opt_parameters)
 
     ret_zone = 0.0
@@ -87,7 +88,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
     ant_idxs = np.arange(24)
 
-    for m in measurements:
+    for i, m in enumerate(measurements):
         cv, ts, src_list, prn_list, obs = m
 
         cv.set_phase_offset(ant_idxs, phase_offsets)
@@ -105,22 +106,33 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
         ret_std += -np.sqrt(ift_scaled.max())  # Peak signal to noise.
 
+        if masks[i] is None:
+            print("Creating mask")
+            mask = np.zeros_like(ift_scaled)
 
-        zones = []
-        for s in src_list:
-            # Get a pixel window around each source...
-            x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
-            
-            # Integrate the brightness in a window around that source
-            s_px = ift_scaled[y_min:y_max, x_min:x_max]
+            for s in src_list:
+                x0,y0 = s.get_px(n_fft)
+                d = 2*s.deg_to_pix(n_fft, window_deg)
+                for y in range(mask.shape[0]):
+                    for x in range(mask.shape[1]):
+                        r2 = (y - y0)**2 + (x - x0)**2
+                        p = np.exp(-r2/d)
+                        mask[y, x] += p
+            masks[i] = mask / np.sum(mask)
 
-            zones.append(np.sum(s_px) / area)
-            
-        zones = np.array(zones)
-        
-        zone_score = -np.mean(zones)
+        mask = masks[i]
+        zone_score = -np.sum(mask * ift_scaled)
+        #zones = []
+        #for s in src_list:
+            ## Get a pixel window around each source...
+            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
+            ## Integrate the brightness in a window around that source
+            #s_px = ift_scaled[y_min:y_max, x_min:x_max]
+            #zones.append(np.sum(s_px) / area)
+        #zones = np.array(zones)
+        #zone_score = -np.mean(zones)
 
-        ret_zone += 2 * zone_score
+        ret_zone += 4 * zone_score
 
     if N_IT % 100 == 0:
         print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
@@ -131,7 +143,64 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         src_list,
         n_fft,
         bin_width,
+        mask,
     )
+
+
+#def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
+    #global triplets, ij_index, jk_index, ik_index
+    #rot_degrees, gains, phase_offsets = split_param(opt_parameters)
+
+    #ret_zone = 0.0
+    #ret_std = 0.0
+
+    #ant_idxs = np.arange(24)
+
+    #for m in measurements:
+        #cv, ts, src_list, prn_list, obs = m
+
+        #cv.set_phase_offset(ant_idxs, phase_offsets)
+        #cv.set_gain(ant_idxs, gains)
+        #api_imaging.rotate_vis(rot_degrees, cv, original_positions)
+
+        #n_bin = 2 ** 7
+        #cal_ift, cal_extent, n_fft, bin_width = api_imaging.image_from_calibrated_vis(
+            #cv, nw=n_bin / 4, num_bin=n_bin
+        #)
+
+        #abs_ift = np.abs(cal_ift)
+        #ift_std = np.std(abs_ift)
+        #ift_scaled = abs_ift / ift_std
+
+        #ret_std += -np.sqrt(ift_scaled.max())  # Peak signal to noise.
+
+
+        #zones = []
+        #for s in src_list:
+            ## Get a pixel window around each source...
+            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
+            
+            ## Integrate the brightness in a window around that source
+            #s_px = ift_scaled[y_min:y_max, x_min:x_max]
+
+            #zones.append(np.sum(s_px) / area)
+            
+        #zones = np.array(zones)
+        
+        #zone_score = -np.mean(zones)
+
+        #ret_zone += 2 * zone_score
+
+    #if N_IT % 100 == 0:
+        #print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
+
+    #return (
+        #(ret_std + ret_zone) / len(measurements),
+        #ift_scaled,
+        #src_list,
+        #n_fft,
+        #bin_width,
+    #)
 
 
 def load_data_from_json(
@@ -151,6 +220,75 @@ def get_window(x_i, y_i, d):
     return x_min, x_max, y_min, y_max
 
 
+#def calc_score(
+    #opt_parameters,
+    #config,
+    #measurements,
+    #window_deg,
+    #original_positions,
+    #update=False,
+    #show=False,
+#):
+    #global N_IT, method, output_directory, f_vs_iteration
+
+    #ret, ift_scaled, src_list, n_fft, bin_width = calc_score_aux(
+        #opt_parameters, measurements, window_deg, original_positions
+    #)
+
+    #if N_IT % 100 == 0:
+        #print(f"Iteration {N_IT}, score={ret}")
+        #f_vs_iteration.append(ret)
+
+    #if N_IT % 1000 == 0:
+
+        #ift_sel = np.zeros_like(ift_scaled)
+
+        #for s in src_list:
+            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
+            #ift_sel[y_min:y_max, x_min:x_max] = ift_scaled[y_min:y_max, x_min:x_max]
+        #x_list, y_list = elaz.get_source_coordinates(src_list)
+
+        #plt.figure()
+        #plt.imshow(
+            #ift_sel,
+            #extent=[-1, 1, -1, 1],
+            #vmin=0,
+        #)  # vmax=8
+        #plt.colorbar()
+        #plt.xlim(1, -1)
+        #plt.ylim(-1, 1)
+        #plt.scatter(x_list, y_list, c="red", s=5)
+        #plt.xlabel("East-West")
+        #plt.ylabel("North-South")
+        #plt.tight_layout()
+        #plt.savefig("{}/opt_slice_{:05d}.png".format(output_directory, N_IT))
+        #plt.close()
+
+        #plt.figure()
+        #plt.imshow(
+            #ift_scaled,
+            #extent=[-1, 1, -1, 1],
+            #vmin=0,
+        #)  # vmax=8
+        #plt.colorbar()
+        #plt.xlim(1, -1)
+        #plt.ylim(-1, 1)
+        #plt.title(ret)
+        #plt.scatter(x_list, y_list, c="red", s=5)
+        #plt.xlabel("East-West")
+        #plt.ylabel("North-South")
+        #plt.tight_layout()
+        #plt.savefig(
+            #"{}/{}_{:5.3f}_opt_full_{:05d}.png".format(
+                #output_directory, method, ret, N_IT
+            #)
+        #)
+        #plt.close()
+    #N_IT += 1
+    #return ret
+
+
+
 def calc_score(
     opt_parameters,
     config,
@@ -162,21 +300,23 @@ def calc_score(
 ):
     global N_IT, method, output_directory, f_vs_iteration
 
-    ret, ift_scaled, src_list, n_fft, bin_width = calc_score_aux(
+    ret, ift_scaled, src_list, n_fft, bin_width, mask = calc_score_aux(
         opt_parameters, measurements, window_deg, original_positions
     )
 
     if N_IT % 100 == 0:
-        print(f"Iteration {N_IT}, score={ret}")
+        print(f"Iteration {N_IT}, score={ret:04.2f}")
         f_vs_iteration.append(ret)
 
     if N_IT % 1000 == 0:
 
-        ift_sel = np.zeros_like(ift_scaled)
+        #ift_sel = np.zeros_like(ift_scaled)
 
-        for s in src_list:
-            x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
-            ift_sel[y_min:y_max, x_min:x_max] = ift_scaled[y_min:y_max, x_min:x_max]
+        #for s in src_list:
+            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
+            #ift_sel[y_min:y_max, x_min:x_max] = ift_scaled[y_min:y_max, x_min:x_max]
+
+        ift_sel = ift_scaled*mask
         x_list, y_list = elaz.get_source_coordinates(src_list)
 
         plt.figure()
@@ -217,7 +357,6 @@ def calc_score(
         plt.close()
     N_IT += 1
     return ret
-
 
 from scipy import optimize
 import json
@@ -286,7 +425,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--method",
         required=False,
-        default="LB",
+        default="BH",
         help="Optimization Method [NM, LB, DE, BH]",
     )
     parser.add_argument(
@@ -301,7 +440,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        '--ignore', nargs='+', type=int, help="Specify the list of antennas to zero out.")
+        '--ignore', nargs='+', type=int, default=[], help="Specify the list of antennas to zero out.")
 
 
     ARGS = parser.parse_args()
@@ -320,10 +459,12 @@ if __name__ == "__main__":
     ant_pos = calib_info["ant_pos"]
     config = settings.from_api_json(info["info"], ant_pos)
     
-    flag_list = []  # [4, 5, 14, 22] # optionally remove some unused antennas
+    flag_list = ARGS.ignore  # [4, 5, 14, 22] # optionally remove some unused antennas
+    print(f"Flagging {flag_list}")
 
     method = ARGS.method
     output_directory = ARGS.dir
+    os.makedirs(output_directory, exist_ok=True)
     f_vs_iteration = []
 
     original_positions = deepcopy(config.get_antenna_positions())
@@ -347,13 +488,10 @@ if __name__ == "__main__":
     init_parameters = join_param(0.0, gains, phase_offsets)
     output_param(init_parameters)
 
-
+    masks = []
     measurements = []
-    for json_file, raw_file in zip(json_files, raw_files):
-        with open(json_file, "r") as jf:
-            calib_info = json.load(jf)
+    for d, raw_file in zip(calib_info["data"], raw_files):
             
-        d = calib_info["data"][0]
         print(d)
         vis_json, src_json = d
         cv, ts, src_list = load_data_from_json(
@@ -387,6 +525,7 @@ if __name__ == "__main__":
         print(f"Config: {vis.config.Dict}")
 
         measurements.append([cv, ts, src_list, prn_list, obs])
+        masks.append(None)
 
     # Acquisition to get expected list of SV's
 
@@ -446,7 +585,7 @@ if __name__ == "__main__":
     for acquisition_data in full_acquisition_data:
         print(acquisition_data.keys())
         for d in acquisition_data:
-            acq = acquisition_data[int(d)]
+            acq = acquisition_data[d]
             ph = np.array(acq['phases'])
             st = np.array(acq['strengths'])
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
