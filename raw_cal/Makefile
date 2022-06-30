@@ -15,7 +15,7 @@ API=https://tart.elec.ac.nz/${TARGET}
 DATA_DIR=cal_data_${TARGET}
 
 cal:
-	python3 tart_cal.py --api ${API} --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --ignore 14 --dir cal_out_${TARGET}
+	python3 tart_cal.py --api ${API} --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir cal_out_${TARGET}
 
 	
 image:

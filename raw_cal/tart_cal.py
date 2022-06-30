@@ -43,21 +43,31 @@ ik_index = None
 
 from acquisition import acquire
 
+REIM = False
 def split_param(x):
     rot_rad = x[0]
-    re = np.concatenate(([1], x[1:24]))
-    im = np.concatenate(([0], x[24:47]))
-    gains = np.sqrt(re * re + im * im)
-    phase_offsets = np.arctan2(im, re)
+    if REIM:
+        re = np.concatenate(([1], x[1:24]))
+        im = np.concatenate(([0], x[24:47]))
+        gains = np.sqrt(re * re + im * im)
+        phase_offsets = np.arctan2(im, re)
+    else:
+        gains = np.concatenate(([1], x[1:24]))
+        phase_offsets = np.concatenate(([0], x[24:47]))
+
     return rot_rad, gains, phase_offsets
 
 
 def join_param(rot_rad, gains, phase_offsets):
     ret = np.zeros(47)
     ret[0] = rot_rad
-    z = gains[1:24] * np.exp(phase_offsets[1:24] * 1j)
-    ret[1:24] = z.real
-    ret[24:47] = z.imag
+    if REIM:
+        z = gains[1:24] * np.exp(phase_offsets[1:24] * 1j)
+        ret[1:24] = z.real
+        ret[24:47] = z.imag
+    else:
+        ret[1:24] = gains[1:24]
+        ret[24:47] = phase_offsets[1:24]
     return ret
 
 
@@ -495,21 +505,35 @@ if __name__ == "__main__":
 
     pointing_error = np.radians(3)
     pointing_center = np.radians(ARGS.pointing)
-    gain_bounds = 2
-    bounds = [(pointing_center-pointing_error, pointing_center + pointing_error)]  # Bounds for the rotation parameter
-    for i in range(46):
-        bounds.append((-gain_bounds, gain_bounds)) # Bounds for all other parameters (real and imaginary components)
 
     print(f"Calculating which antennas to ignore {best_acq}")
+    test_gains = best_acq / best_acq[0]
+    print(f"Test gains: {test_gains}")
+
+    bounds = [0] * 47
+    bounds[0] = (pointing_center-pointing_error, pointing_center + pointing_error)  # Bounds for the rotation parameter
+    if REIM:
+        for i in range(1,47):
+            bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
+    else:
+        for i in range(1,24):
+            tg = test_gains[i]
+            bounds[i] = (tg - 0.1, tg + 0.1) # Bounds for all other parameters (real and imaginary components)
+        for i in range(24,47):
+            bounds[i] = (-np.pi, np.pi) # Bounds for all other parameters (real and imaginary components)
+
+
+
+
     zero_list = ARGS.ignore
     if zero_list is not None:
         print(f"Ignoring antennas {zero_list}")
         for i,a in enumerate(best_acq):
-            if a < 1:
+            if a < 0.5:
                 print(a,i)
-                bounds[i] = (-0.01, 0.01)
-                bounds[i+23] = (-0.01, 0.01)
+                bounds[i-1] = (-0.01, 0.01)
 
+    print(f"Bounds {bounds}")
     np.random.seed(555)  # Seeded to allow replication.
 
     if method == "NM":
@@ -549,9 +573,7 @@ if __name__ == "__main__":
     new_positions = settings.rotate_location(
         np.degrees(rot_rad), np.array(original_positions).T
     )
-    print(new_positions)
     pos_list = (np.array(new_positions).T).tolist()
-    print(pos_list)
     output_json["antenna_positions"] = pos_list
 
     with open("{}/{}_opt_json.json".format(output_directory, method), "w") as fp:
