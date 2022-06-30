@@ -299,8 +299,10 @@ if __name__ == "__main__":
         help="Number of iterations for basinhopping",
     )
     parser.add_argument(
-        "--elevation", type=float, default=30.0, help="Elevation threshold for sources]"
-    )
+        "--elevation", type=float, default=30.0, help="Elevation threshold for sources")
+    
+    parser.add_argument(
+        "--pointing", type=float, default=0.0, help="Initial estimate of pointing offset (degrees)")
 
     parser.add_argument(
         '--ignore', nargs='+', type=int, default=[], help="Specify the list of antennas to zero out.")
@@ -491,10 +493,12 @@ if __name__ == "__main__":
         show=False,
     )
 
-    pointing_error = np.radians(6)
-    bounds = [(-pointing_error, pointing_error)]  # Bounds for the rotation parameter
+    pointing_error = np.radians(3)
+    pointing_center = np.radians(ARGS.pointing)
+    gain_bounds = 2
+    bounds = [(pointing_center-pointing_error, pointing_center + pointing_error)]  # Bounds for the rotation parameter
     for i in range(46):
-        bounds.append((-2, 2)) # Bounds for all other parameters (real and imaginary components)
+        bounds.append((-gain_bounds, gain_bounds)) # Bounds for all other parameters (real and imaginary components)
 
     print(f"Calculating which antennas to ignore {best_acq}")
     zero_list = ARGS.ignore
@@ -528,7 +532,7 @@ if __name__ == "__main__":
             init_parameters,
             niter=ARGS.iterations,
             T=0.5,
-            take_step=MyTakeStep(1.2, pointing_error),
+            take_step=MyTakeStep(1.0, pointing_error),
             disp=True,
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
