@@ -223,14 +223,14 @@ import json
 
 
 class MyTakeStep(object):
-    def __init__(self, stepsize, pointing_error):
+    def __init__(self, stepsize, pointing_rad):
         self.stepsize = stepsize
-        self.pointing_error = pointing_error
+        self.pointing_rad = pointing_rad
         
     def __call__(self, x):
         s = self.stepsize
         
-        pnt = np.radians(self.pointing_error*s)
+        pnt = self.pointing_rad*s
         x[0] += np.random.uniform(-pnt, pnt)
         x[1:] += np.random.uniform(-s, s, x[1:].shape)
         return x
