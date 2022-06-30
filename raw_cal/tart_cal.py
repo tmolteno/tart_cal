@@ -520,7 +520,7 @@ if __name__ == "__main__":
             tg = test_gains[i]
             bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
         for i in range(24,47):
-            bounds[i] = (-np.pi, np.pi) # Bounds for all other parameters (real and imaginary components)
+            bounds[i] = (-np.pi*1.5, np.pi*1.5) # Bounds for all other parameters (real and imaginary components)
 
 
 
