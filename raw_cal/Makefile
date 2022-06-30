@@ -1,3 +1,10 @@
+# Full raw data calibration using GPS correlations to flag antennas.
+#
+# Example usage
+#
+# make data TARGET=rhodes N=3 PW=foobar
+# make cal TARGET=rhodes POINTING=11
+
 TARGET=signal
 PW=<password>
 N=1
