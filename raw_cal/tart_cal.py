@@ -223,12 +223,15 @@ import json
 
 
 class MyTakeStep(object):
-    def __init__(self, stepsize=0.5):
+    def __init__(self, stepsize, pointing_error):
         self.stepsize = stepsize
-
+        self.pointing_error = pointing_error
+        
     def __call__(self, x):
         s = self.stepsize
-        x[0] += np.random.uniform(-2.0 * s, 2.0 * s)
+        
+        pnt = np.radians(self.pointing_error*s)
+        x[0] += np.random.uniform(-pnt, pnt)
         x[1:] += np.random.uniform(-s, s, x[1:].shape)
         return x
 
@@ -308,10 +311,10 @@ if __name__ == "__main__":
     # Load calibration data from the data directory
     
     data_dir = ARGS.data
-    json_files = [f for f in glob.glob(f"{data_dir}/*.json")]
+    json_files = [f for f in glob.glob(f"{data_dir}/cal*.json")]
     raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
 
-
+    print(json_files)
     with open(json_files[0], "r") as json_file:
         calib_info = json.load(json_file)
         
@@ -488,7 +491,8 @@ if __name__ == "__main__":
         show=False,
     )
 
-    bounds = [(-np.pi, np.pi)]  # Bounds for the rotation parameter
+    pointing_error = np.radians(6)
+    bounds = [(-pointing_error, pointing_error)]  # Bounds for the rotation parameter
     for i in range(46):
         bounds.append((-2, 2)) # Bounds for all other parameters (real and imaginary components)
 
@@ -524,7 +528,7 @@ if __name__ == "__main__":
             init_parameters,
             niter=ARGS.iterations,
             T=0.5,
-            stepsize=2.0,
+            take_step=MyTakeStep(1.2, pointing_error),
             disp=True,
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
