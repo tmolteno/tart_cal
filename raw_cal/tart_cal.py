@@ -135,8 +135,8 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
         ret_zone += 4 * zone_score
 
-    if N_IT % 100 == 0:
-        print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
+    #if N_IT % 100 == 0:
+        #print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
 
     return (
         (ret_std + ret_zone) / len(measurements),
@@ -174,11 +174,11 @@ def calc_score(
         opt_parameters, measurements, window_deg, original_positions
     )
 
-    if N_IT % 100 == 0:
+    if N_IT % 1000 == 0:
         print(f"Iteration {N_IT}, score={ret:04.2f}")
         f_vs_iteration.append(ret)
 
-    if N_IT % 1000 == 0:
+    if N_IT % 10000 == 0:
 
         #ift_sel = np.zeros_like(ift_scaled)
 
