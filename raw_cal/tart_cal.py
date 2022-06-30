@@ -518,7 +518,7 @@ if __name__ == "__main__":
     else:
         for i in range(1,24):
             tg = test_gains[i]
-            bounds[i] = (tg - 0.1, tg + 0.1) # Bounds for all other parameters (real and imaginary components)
+            bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
         for i in range(24,47):
             bounds[i] = (-np.pi, np.pi) # Bounds for all other parameters (real and imaginary components)
 
@@ -531,7 +531,7 @@ if __name__ == "__main__":
         for i,a in enumerate(best_acq):
             if a < 0.5:
                 print(a,i)
-                bounds[i-1] = (-0.01, 0.01)
+                bounds[i] = (0, 0.0001)
 
     print(f"Bounds {bounds}")
     np.random.seed(555)  # Seeded to allow replication.
