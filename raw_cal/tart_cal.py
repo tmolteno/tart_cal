@@ -241,9 +241,16 @@ class MyTakeStep(object):
         s = self.stepsize
         
         pnt = self.pointing_rad*s
-        x[0] += np.random.uniform(-pnt, pnt)
-        x[1:] += np.random.uniform(-s, s, x[1:].shape)
-        return x
+        
+        if REIM:
+            offset = join_param(np.random.uniform(-pnt, pnt),
+                                np.random.uniform(-s, s, 24),
+                                np.random.uniform(-s, s, 24))
+        else:
+            offset = join_param(np.random.uniform(-pnt, pnt),
+                                np.random.uniform(-s/10, s/10, 24),
+                                np.random.uniform(-s, s, 24))
+        return x + offset
 
 
 def bh_callback(x, f, accepted):
