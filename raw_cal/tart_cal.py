@@ -44,30 +44,38 @@ ik_index = None
 from acquisition import acquire
 
 REIM = False
+NANT=24
+NEND=int(2*NANT-1)
+
+FREE_ANTENNAS=slice(1,NANT)
+
+GAIN_INDICES=slice(1,NANT)
+PHASE_INDICES=slice(NANT, NEND)
+
 def split_param(x):
     rot_rad = x[0]
     if REIM:
-        re = np.concatenate(([1], x[1:24]))
-        im = np.concatenate(([0], x[24:47]))
+        re = np.concatenate(([1], x[GAIN_INDICES]))
+        im = np.concatenate(([0], x[PHASE_INDICES]))
         gains = np.sqrt(re * re + im * im)
         phase_offsets = np.arctan2(im, re)
     else:
-        gains = np.concatenate(([1], x[1:24]))
-        phase_offsets = np.concatenate(([0], x[24:47]))
+        gains = np.concatenate(([1], x[GAIN_INDICES]))
+        phase_offsets = np.concatenate(([0], x[PHASE_INDICES]))
 
     return rot_rad, gains, phase_offsets
 
 
 def join_param(rot_rad, gains, phase_offsets):
-    ret = np.zeros(47)
+    ret = np.zeros(NEND)
     ret[0] = rot_rad
     if REIM:
-        z = gains[1:24] * np.exp(phase_offsets[1:24] * 1j)
-        ret[1:24] = z.real
-        ret[24:47] = z.imag
+        z = gains[FREE_ANTENNAS] * np.exp(phase_offsets[FREE_ANTENNAS] * 1j)
+        ret[GAIN_INDICES] = z.real
+        ret[PHASES] = z.imag
     else:
-        ret[1:24] = gains[1:24]
-        ret[24:47] = phase_offsets[1:24]
+        ret[GAIN_INDICES] = gains[FREE_ANTENNAS]
+        ret[PHASE_INDICES] = phase_offsets[FREE_ANTENNAS]
     return ret
 
 
@@ -464,7 +472,7 @@ if __name__ == "__main__":
     # Use the standard deviation of the phases to determine whether the SV is visible.
     print("Finding visible satellites")
     
-    best_acq = np.zeros(24)
+    best_acq = np.zeros(NANT)
     n = 0
     best_score = -999
     for acquisition_data in full_acquisition_data:
@@ -518,19 +526,18 @@ if __name__ == "__main__":
 
     print(f"Calculating which antennas to ignore {best_acq}")
     test_gains = best_acq / best_acq[0]
-    print(f"Test gains: {test_gains}")
+    print(f"Estimated gains: {test_gains}")
 
-    bounds = [0] * 47
+    bounds = [0] * NEND
     bounds[0] = (pointing_center-pointing_error, pointing_center + pointing_error)  # Bounds for the rotation parameter
     if REIM:
-        for i in range(1,47):
+        for i in range(1,NEND):
             bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
     else:
-        for i in range(1,24):
+        for i in range(1,NANT):
             tg = test_gains[i]
             bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
-        for i in range(24,47):
-            bounds[i] = (-np.pi*1.5, np.pi*1.5) # Bounds for all other parameters (real and imaginary components)
+            bounds[i + NANT-1] = (-np.pi*1.5, np.pi*1.5) # Bounds for all other parameters (real and imaginary components)
 
 
 
