@@ -596,6 +596,7 @@ if __name__ == "__main__":
     with open("{}/{}_opt_json.json".format(output_directory, method), "w") as fp:
         json.dump(output_json, fp, indent=4, separators=(",", ": "))
 
+    print(f"Optimal solution: {output_json}")
     f_history_json = {}
     f_history_json["start"] = s
     f_history_json["history"] = f_vs_iteration
