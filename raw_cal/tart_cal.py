@@ -464,7 +464,8 @@ if __name__ == "__main__":
     # Use the standard deviation of the phases to determine whether the SV is visible.
     print("Finding visible satellites")
     
-    best_acq = -1
+    best_acq = np.zeros(24)
+    n = 0
     best_score = -999
     for acquisition_data in full_acquisition_data:
         print(acquisition_data.keys())
@@ -474,16 +475,18 @@ if __name__ == "__main__":
             st = np.array(acq['strengths'])
 
             mean_str = np.median(st)
-            score = np.max(mean_str - st)
-
-            print(f"score={score}")
-            if score > best_score:
-                print(f"Best {d} score={score}")
-                best_score = score
-                best_acq = st / 6.7
+            
+            if mean_str > 7.0:
+                best_acq += st
+                n = n + 1
 
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
 
+    if n == 0:
+        raise RuntimeError("No satellites visible")
+    
+    best_acq = best_acq / n
+    
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
         
