@@ -241,10 +241,11 @@ import json
 
 
 class MyTakeStep(object):
-    def __init__(self, stepsize, pointing_rad):
+    def __init__(self, stepsize, pointing_rad, max_delay):
         self.stepsize = stepsize
         self.pointing_rad = pointing_rad
-        
+        self.max_delay = max_delay
+
     def __call__(self, x):
         s = self.stepsize
         
@@ -252,13 +253,19 @@ class MyTakeStep(object):
         
         if REIM:
             offset = join_param(np.random.uniform(-pnt, pnt),
-                                np.random.uniform(-s, s, 24),
-                                np.random.uniform(-s, s, 24))
+                                np.random.uniform(-s, s, 24),       # Re
+                                np.random.uniform(-s, s, 24))       # Im
+
+            ret = x + offset
         else:
+            phase_step = s * self.max_delay*np.pi
             offset = join_param(np.random.uniform(-pnt, pnt),
-                                np.random.uniform(-s/10, s/10, 24),
-                                np.random.uniform(-s, s, 24))
-        return x + offset
+                                np.random.uniform(-s/10, s/10, 24), # Gain
+                                np.random.uniform(-phase_step, phase_step, 24))       # Phase
+
+            ret = x + offset
+            ret[PHASE_INDICES] = np.fmod(ret[PHASE_INDICES], np.pi*2)
+        return ret
 
 
 def bh_callback(x, f, accepted):
@@ -328,6 +335,9 @@ if __name__ == "__main__":
     
     parser.add_argument(
         "--pointing", type=float, default=0.0, help="Initial estimate of pointing offset (degrees)")
+
+    parser.add_argument(
+        "--max-delay", type=float, default=1, help="Maximum delay in wavelengths")
 
     parser.add_argument(
         '--ignore', nargs='+', type=int, default=[], help="Specify the list of antennas to zero out.")
@@ -534,10 +544,11 @@ if __name__ == "__main__":
         for i in range(1,NEND):
             bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
     else:
+        max_delay = ARGS.max_delay
         for i in range(1,NANT):
             tg = test_gains[i]
             bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
-            bounds[i + NANT-1] = (-np.pi*1.5, np.pi*1.5) # Bounds for all other parameters (real and imaginary components)
+            bounds[i + NANT-1] = (-np.pi*2*max_delay, np.pi*2*max_delay) # Bounds for all other parameters (real and imaginary components)
 
 
 
@@ -573,7 +584,7 @@ if __name__ == "__main__":
             init_parameters,
             niter=ARGS.iterations,
             T=0.5,
-            take_step=MyTakeStep(1.0, pointing_error),
+            take_step=MyTakeStep(1.0, pointing_error, max_delay),
             disp=True,
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
