@@ -540,19 +540,15 @@ if __name__ == "__main__":
 
     bounds = [0] * NEND
     bounds[0] = (pointing_center-pointing_error, pointing_center + pointing_error)  # Bounds for the rotation parameter
+    max_delay = ARGS.max_delay
     if REIM:
         for i in range(1,NEND):
             bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
     else:
-        max_delay = ARGS.max_delay
         for i in range(1,NANT):
-            if REIM:
-                bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
-                bounds[i + NANT-1] = (-2,2) # Bounds for all other parameters (real and imaginary components)
-            else:
-                tg = test_gains[i]
-                bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
-                bounds[i + NANT-1] = (-np.pi*2*max_delay, np.pi*2*max_delay) # Bounds for all other parameters (real and imaginary components)
+            tg = test_gains[i]
+            bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
+            bounds[i + NANT-1] = (-np.pi*2*max_delay, np.pi*2*max_delay) # Bounds for all other parameters (real and imaginary components)
 
 
 
