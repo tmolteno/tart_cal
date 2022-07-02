@@ -154,7 +154,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         ret_zone += 4 * (zone_score)
 
     if N_IT % 100 == 0:
-        print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, {in_zone} {out_zone}", end='\r')
+        print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f} out: {out_zone:04.2f}", end='\r')
 
     return (
         (ret_std + ret_zone) / len(measurements),
