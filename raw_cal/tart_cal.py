@@ -284,7 +284,7 @@ import glob
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Calibrate the tart telescope from API.",
+        description="Calibrate the tart telescope from downloaded data.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -297,7 +297,7 @@ if __name__ == "__main__":
         "--data",
         required=False,
         default="cal_data",
-        help="Calibration Output Data Directory.",
+        help="Calibration Input Data Directory.",
     )
     
     parser.add_argument("--show", action="store_true", help="show instead of save.")
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     ARGS = parser.parse_args()
 
     # Load calibration data from the data directory
-    
+
     data_dir = ARGS.data
     json_files = [f for f in glob.glob(f"{data_dir}/cal*.json")]
     raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
