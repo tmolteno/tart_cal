@@ -43,7 +43,8 @@ ik_index = None
 
 from acquisition import acquire
 
-REIM = True
+ift_scaled = None
+#REIM = True
 NANT=24
 NEND=int(2*NANT-1)
 
@@ -98,7 +99,7 @@ def output_param(x, fp=None):
 
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index, masks
+    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled
     rot_rad, gains, phase_offsets = split_param(opt_parameters)
 
     ret_zone = 0.0
@@ -136,15 +137,24 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                         r2 = (y - y0)**2 + (x - x0)**2
                         p = np.exp(-r2/d)
                         mask[y, x] += p
-            masks[i] = mask / np.sum(mask)
+
+            # Zone outside of mask
+            print(f"Max mask {np.max(mask)}, {np.min(mask)}")
+            negative_mask = (-mask + 1)
+            negative_mask[negative_mask < 0] = 0
+
+            inv_masks[i] = negative_mask
+            masks[i] = mask
 
         mask = masks[i]
-        zone_score = -np.sum(mask * ift_scaled)
+        in_zone = -np.sum(masks[i] * ift_scaled)
+        out_zone = np.std(ift_scaled*inv_masks[i])
 
-        ret_zone += 4 * zone_score
+        zone_score = in_zone / out_zone
+        ret_zone += 4 * (zone_score)
 
-    #if N_IT % 100 == 0:
-        #print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
+    if N_IT % 100 == 0:
+        print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, {in_zone} {out_zone}", end='\r')
 
     return (
         (ret_std + ret_zone) / len(measurements),
@@ -183,56 +193,9 @@ def calc_score(
     )
 
     if N_IT % 1000 == 0:
-        print(f"Iteration {N_IT}, score={ret:04.2f}")
+        #print(f"Iteration {N_IT}, score={ret:04.2f}")
         f_vs_iteration.append(ret)
 
-    if N_IT % 10000 == 0:
-
-        #ift_sel = np.zeros_like(ift_scaled)
-
-        #for s in src_list:
-            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
-            #ift_sel[y_min:y_max, x_min:x_max] = ift_scaled[y_min:y_max, x_min:x_max]
-
-        ift_sel = ift_scaled*mask
-        x_list, y_list = elaz.get_source_coordinates(src_list)
-
-        plt.figure()
-        plt.imshow(
-            ift_sel,
-            extent=[-1, 1, -1, 1],
-            vmin=0,
-        )  # vmax=8
-        plt.colorbar()
-        plt.xlim(1, -1)
-        plt.ylim(-1, 1)
-        plt.scatter(x_list, y_list, c="red", s=5)
-        plt.xlabel("East-West")
-        plt.ylabel("North-South")
-        plt.tight_layout()
-        plt.savefig("{}/opt_slice_{:05d}.png".format(output_directory, N_IT))
-        plt.close()
-
-        plt.figure()
-        plt.imshow(
-            ift_scaled,
-            extent=[-1, 1, -1, 1],
-            vmin=0,
-        )  # vmax=8
-        plt.colorbar()
-        plt.xlim(1, -1)
-        plt.ylim(-1, 1)
-        plt.title(ret)
-        plt.scatter(x_list, y_list, c="red", s=5)
-        plt.xlabel("East-West")
-        plt.ylabel("North-South")
-        plt.tight_layout()
-        plt.savefig(
-            "{}/{}_{:5.3f}_opt_full_{:05d}.png".format(
-                output_directory, method, ret, N_IT
-            )
-        )
-        plt.close()
     N_IT += 1
     return ret
 
@@ -269,18 +232,54 @@ class MyTakeStep(object):
 
 
 def bh_callback(x, f, accepted):
-    global output_directory, bh_basin_progress, N_IT
-    print("BH f={} accepted {}".format(f, int(accepted)))
+    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
+    print(f"BH f={f} accepted {accepted}")
     output_param(x)
     if accepted:
         bh_basin_progress.append([N_IT, f])
-        with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
+        with open(f"{output_directory}/bh_basin_progress.json", "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
-        with open(
-            "{}/BH_basin_{:5.3f}_{}.json".format(output_directory, f, N_IT), "w"
-        ) as fp:
+        with open(f"{output_directory}/BH_basin_{f:5.3f}_{N_IT}.json", "w") as fp:
             output_param(x, fp)
+
+        mask = masks[0]
+        ift_sel = ift_scaled*mask
+        x_list, y_list = elaz.get_source_coordinates(src_list)
+
+        plt.figure()
+        plt.imshow(
+            ift_sel,
+            extent=[-1, 1, -1, 1],
+            vmin=0,
+        )  # vmax=8
+        plt.colorbar()
+        plt.xlim(1, -1)
+        plt.ylim(-1, 1)
+        plt.scatter(x_list, y_list, c="red", s=5)
+        plt.xlabel("East-West")
+        plt.ylabel("North-South")
+        plt.tight_layout()
+        plt.savefig(f"{output_directory}/mask_{f:5.3f}_{N_IT:05d}.png")
+        plt.close()
+
+        plt.figure()
+        plt.imshow(
+            ift_scaled,
+            extent=[-1, 1, -1, 1],
+            vmin=0,
+        )  # vmax=8
+        plt.colorbar()
+        plt.xlim(1, -1)
+        plt.ylim(-1, 1)
+        plt.title(f)
+        plt.scatter(x_list, y_list, c="red", s=5)
+        plt.xlabel("East-West")
+        plt.ylabel("North-South")
+        plt.tight_layout()
+        plt.savefig(f"{output_directory}/{method}_{f:5.3f}_accepted_{N_IT:05d}.png")
+        plt.close()
+
 
 
 def de_callback(xk, convergence):
@@ -316,6 +315,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Start from current knowledge of gains.",
     )
+    parser.add_argument(
+        "--use-phases",
+        action="store_true",
+        help="Use Real/Imaginary components rather than gains and phases.",
+    )
     parser.add_argument("--dir", required=False, default=".", help="Output directory.")
     parser.add_argument(
         "--method",
@@ -331,7 +335,7 @@ if __name__ == "__main__":
         help="Number of iterations for basinhopping",
     )
     parser.add_argument(
-        "--elevation", type=float, default=30.0, help="Elevation threshold for sources")
+        "--elevation", type=float, default=20.0, help="Elevation threshold for sources")
     
     parser.add_argument(
         "--pointing", type=float, default=0.0, help="Initial estimate of pointing offset (degrees)")
@@ -345,6 +349,7 @@ if __name__ == "__main__":
 
     ARGS = parser.parse_args()
 
+    REIM = not ARGS.use_phases
     # Load calibration data from the data directory
 
     data_dir = ARGS.data
@@ -389,6 +394,7 @@ if __name__ == "__main__":
     output_param(init_parameters)
 
     masks = []
+    inv_masks = []
     measurements = []
     for d, raw_file in zip(calib_info["data"], raw_files):
             
@@ -426,6 +432,7 @@ if __name__ == "__main__":
 
         measurements.append([cv, ts, src_list, prn_list, obs])
         masks.append(None)
+        inv_masks.append(None)
 
     # Acquisition to get expected list of SV's
 
