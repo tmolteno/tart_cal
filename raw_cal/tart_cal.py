@@ -43,7 +43,7 @@ ik_index = None
 
 from acquisition import acquire
 
-REIM = False
+REIM = True
 NANT=24
 NEND=int(2*NANT-1)
 
@@ -72,7 +72,7 @@ def join_param(rot_rad, gains, phase_offsets):
     if REIM:
         z = gains[FREE_ANTENNAS] * np.exp(phase_offsets[FREE_ANTENNAS] * 1j)
         ret[GAIN_INDICES] = z.real
-        ret[PHASES] = z.imag
+        ret[PHASE_INDICES] = z.imag
     else:
         ret[GAIN_INDICES] = gains[FREE_ANTENNAS]
         ret[PHASE_INDICES] = phase_offsets[FREE_ANTENNAS]
@@ -546,9 +546,13 @@ if __name__ == "__main__":
     else:
         max_delay = ARGS.max_delay
         for i in range(1,NANT):
-            tg = test_gains[i]
-            bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
-            bounds[i + NANT-1] = (-np.pi*2*max_delay, np.pi*2*max_delay) # Bounds for all other parameters (real and imaginary components)
+            if REIM:
+                bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
+                bounds[i + NANT-1] = (-2,2) # Bounds for all other parameters (real and imaginary components)
+            else:
+                tg = test_gains[i]
+                bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
+                bounds[i + NANT-1] = (-np.pi*2*max_delay, np.pi*2*max_delay) # Bounds for all other parameters (real and imaginary components)
 
 
 
@@ -560,6 +564,7 @@ if __name__ == "__main__":
             if a < 0.5:
                 print(a,i)
                 bounds[i] = (0, 0.0001)
+                bounds[i + NANT-1] = (0, 0.0001)
 
     print(f"Bounds {bounds}")
     np.random.seed(555)  # Seeded to allow replication.
