@@ -19,7 +19,7 @@ plot:
 
 cal:
 	rm -f cal_out_${TARGET}/*
-	python3 tart_cal.py --api ${API} --use-phase --cold-start --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir cal_out_${TARGET}
+	python3 tart_cal.py --api ${API} --use-phase --elevation 40 --cold-start --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir cal_out_${TARGET}
 
 	
 image:

@@ -152,9 +152,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         outmask_img = inv_masks[i]*ift_scaled
 
         in_zone = np.sum((masked_img)) / np.sum(masks[i])
-        out_zone = np.median(outmask_img)
+        out_zone = np.std(outmask_img)
 
-        zone_score = (in_zone / 1)**4
+        zone_score = (in_zone / out_zone)**4
         ret_zone += -zone_score
 
     ret_std = ret_std / len(measurements)
