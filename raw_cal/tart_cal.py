@@ -149,12 +149,12 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         mask = masks[i]
 
         masked_img = masks[i]*ift_scaled
-        outmask_img = inv_masks[i]*ift_scaled
+        #outmask_img = inv_masks[i]*ift_scaled
 
-        in_zone = np.sum((masked_img)) / np.sum(masks[i])
-        out_zone = np.std(outmask_img)
+        in_zone = np.sum(np.sqrt(masked_img))  / np.sum(masks[i])
+        out_zone = 0 # np.std(outmask_img)
 
-        zone_score = (in_zone / out_zone)**4
+        zone_score = (in_zone)**2
         ret_zone += -zone_score
 
     ret_std = ret_std / len(measurements)
@@ -164,7 +164,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f} out: {out_zone:04.2f}", end='\r')
 
     return (
-        (ret_zone),
+        (ret_zone + ret_std),
         ift_scaled,
         src_list,
         n_fft,
