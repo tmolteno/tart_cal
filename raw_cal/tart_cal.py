@@ -147,17 +147,24 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             masks[i] = mask
 
         mask = masks[i]
-        in_zone = -np.sum(masks[i] * ift_scaled)
-        out_zone = np.std(ift_scaled*inv_masks[i])
 
-        zone_score = in_zone / out_zone
-        ret_zone += 4 * (zone_score)
+        masked_img = masks[i]*ift_scaled
+        outmask_img = inv_masks[i]*ift_scaled
+
+        in_zone = np.sum(np.sqrt(masked_img))
+        out_zone = np.median(outmask_img)
+
+        zone_score = in_zone # / out_zone
+        ret_zone += -zone_score
+
+    ret_std = ret_std / len(measurements)
+    ret_zone = ret_zone / len(measurements)
 
     if N_IT % 100 == 0:
         print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f} out: {out_zone:04.2f}", end='\r')
 
     return (
-        (ret_std + ret_zone) / len(measurements),
+        (ret_zone),
         ift_scaled,
         src_list,
         n_fft,
@@ -335,7 +342,7 @@ if __name__ == "__main__":
         help="Number of iterations for basinhopping",
     )
     parser.add_argument(
-        "--elevation", type=float, default=20.0, help="Elevation threshold for sources")
+        "--elevation", type=float, default=30.0, help="Elevation threshold for sources")
     
     parser.add_argument(
         "--pointing", type=float, default=0.0, help="Initial estimate of pointing offset (degrees)")
