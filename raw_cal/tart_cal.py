@@ -106,12 +106,17 @@ class ParamReIm(Param):
         ret[self.im_indices] = z.imag
         return ret
 
-    def bounds(self, pointing_center):
-        bounds = [0] * self.nend
+    def bounds(self, pointing_center, test_gains):
+        bounds = np.empty(self.nend, dtype=(float,2))
         bounds[0] = self.pointing_bounds(pointing_center)
-        max_delay = ARGS.max_delay
-        for i in range(1,self.nend):
-            bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
+        bounds[self.re_indices] = (-2,2)
+        bounds[self.im_indices] = (-2,2)
+
+        for i in range(1,self.nant):
+            tg = test_gains[i]
+            if tg < 0.01:
+                bounds[i] = (0, 1e-3)
+                bounds[i + self.nant] = (0, 1e-3)
 
         return bounds
 
@@ -159,12 +164,15 @@ class ParamPhase(Param):
         ret[self.phase_indices] = self.phase_offsets[self.free_antennas]
         return ret
 
-    def bounds(self, pointing_error):
+    def bounds(self, pointing_error, test_gains):
         bounds = [0] * self.nend
         bounds[0] = self.pointing_bounds(pointing_center)
         for i in range(1,self.nant):
             tg = test_gains[i]
-            bounds[i] = (-np.pi*2, np.pi*2) # Bounds for phases
+            if tg < 0.01:
+                bounds[i] = (0, 1e-3)
+            else:
+                bounds[i] = (-np.pi*2, np.pi*2) # Bounds for phases
 
         return bounds
 
@@ -679,18 +687,11 @@ if __name__ == "__main__":
     test_gains = best_acq / best_acq[0]
     print(f"Estimated gains: {test_gains}")
 
-    bounds = myParam.bounds(pointing_center)
+    bounds = myParam.bounds(pointing_center, test_gains)
 
     init_parameters = myParam.to_vector()
 
     zero_list = ARGS.ignore
-    if zero_list is not None:
-        print(f"Ignoring antennas {zero_list}")
-        for i,a in enumerate(best_acq):
-            if a < 0.5:
-                print(a,i)
-                bounds[i] = (0, 0.0001)
-                bounds[i + NANT-1] = (0, 0.0001)
 
     print(f"Bounds {bounds}")
     np.random.seed(555)  # Seeded to allow replication.
