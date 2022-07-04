@@ -46,66 +46,201 @@ from acquisition import acquire
 ift_scaled = None
 #REIM = True
 NANT=24
-NEND=int(2*NANT-1)
-
-FREE_ANTENNAS=slice(1,NANT)
-
-GAIN_INDICES=slice(1,NANT)
-PHASE_INDICES=slice(NANT, NEND)
-
-def split_param(x):
-    rot_rad = x[0]
-    if REIM:
-        re = np.concatenate(([1], x[GAIN_INDICES]))
-        im = np.concatenate(([0], x[PHASE_INDICES]))
-        gains = np.sqrt(re * re + im * im)
-        phase_offsets = np.arctan2(im, re)
-    else:
-        gains = np.concatenate(([1], x[GAIN_INDICES]))
-        phase_offsets = np.concatenate(([0], x[PHASE_INDICES]))
-
-    return rot_rad, gains, phase_offsets
 
 
-def join_param(rot_rad, gains, phase_offsets):
-    ret = np.zeros(NEND)
-    ret[0] = rot_rad
-    if REIM:
-        z = gains[FREE_ANTENNAS] * np.exp(phase_offsets[FREE_ANTENNAS] * 1j)
-        ret[GAIN_INDICES] = z.real
-        ret[PHASE_INDICES] = z.imag
-    else:
-        ret[GAIN_INDICES] = gains[FREE_ANTENNAS]
-        ret[PHASE_INDICES] = phase_offsets[FREE_ANTENNAS]
-    return ret
+class Param:
+    def __init__(self, nant, pointing_error):
+        self.nant = nant
+        self.gains = None
+        self.phase_offsets = None
+        self.rot_rad = None
+        self.pointing_error = pointing_error
+
+    def take_step(self, stepsize):
+        pass
+
+    def from_vector(self, x):
+        raise RuntimeError("Implement in subclass")
+
+    def to_json(self):
+        ret = {
+            "gain": np.round(self.gains, 4).tolist(),
+            "rot_degrees": np.degrees(self.rot_rad),
+            "phase_offset": np.round(self.phase_offsets, 4).tolist(),
+        }
+        return ret
 
 
-def param_to_json(x):
-    rot_rad, gains, phase_offsets = split_param(x)
-    ret = {
-        "gain": np.round(gains, 4).tolist(),
-        "rot_degrees": np.degrees(rot_rad),
-        "phase_offset": np.round(phase_offsets, 4).tolist(),
-    }
-    return ret
+    def output(self, fp=None):
+        ret = self.to_json()
+        if fp is None:
+            print(json.dumps(ret, indent=4, separators=(",", ": ")))
+        else:
+            json.dump(ret, fp, indent=4, separators=(",", ": "))
+
+    def pointing_bounds(self, pointing_center):
+        return (pointing_center-self.pointing_error, pointing_center + self.pointing_error)
 
 
-def output_param(x, fp=None):
-    ret = param_to_json(x)
-    if fp is None:
-        print(json.dumps(ret, indent=4, separators=(",", ": ")))
-    else:
-        json.dump(ret, fp, indent=4, separators=(",", ": "))
+class ParamReIm(Param):
+
+    def __init__(self, nant, pointing_error):
+        super().__init__(nant, pointing_error)
+        self.nend=int(2*self.nant-1)
+        self.free_antennas=slice(1,self.nant)
+        self.re_indices=slice(1, self.nant)
+        self.im_indices=slice(self.nant, self.nend)
+
+    def from_vector(self, x):
+        self.rot_rad = x[0]
+        re = np.concatenate(([1], x[self.re_indices]))
+        im = np.concatenate(([0], x[self.im_indices]))
+        self.gains = np.sqrt(re * re + im * im)
+        self.phase_offsets = np.arctan2(im, re)
+
+    def to_vector(self):
+        ret = np.zeros(self.nend)
+        ret[0] = self.rot_rad
+        z = self.gains[self.free_antennas] * np.exp(self.phase_offsets[self.free_antennas] * 1j)
+        ret[self.re_indices] = z.real
+        ret[self.im_indices] = z.imag
+        return ret
+
+    def bounds(self, pointing_center):
+        bounds = [0] * self.nend
+        bounds[0] = self.pointing_bounds(pointing_center)
+        max_delay = ARGS.max_delay
+        for i in range(1,self.nend):
+            bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
+
+        return bounds
+
+    def take_step(self, x, stepsize):
+        pnt = self.pointing_error*stepsize
+
+        rot_step = np.random.uniform(-pnt, pnt)
+        re_step = np.random.uniform(-stepsize, stepsize, self.nant-1)   # Re
+        im_step = np.random.uniform(-stepsize, stepsize, self.nant-1)   # Im
+
+        ret = x + np.concatenate(([rot_step], re_step, im_step))
+
+        return ret
+
+class ParamPhase(Param):
+
+    def __init__(self, nant, pointing_error, gains):
+        super().__init__(nant, pointing_error)
+        self.gains = gains
+        self.nend = nant
+        self.free_antennas=slice(1, self.nant)
+        self.phase_indices=slice(1, self.nant)
+        self.phase_offsets = np.zeros_like(self.gains)
+
+    def take_step(self, x, stepsize):
+        ret = np.zeros_like(x)
+
+        pnt = self.pointing_error*stepsize
+
+        phase_step = stepsize * np.pi
+
+        rot_step = np.random.uniform(-pnt, pnt)
+        phase_steps  = np.random.uniform(-phase_step, phase_step, self.nant-1)
+
+        ret = x + np.concatenate(([rot_step], phase_steps))
+        return ret
+
+    def from_vector(self, x):
+        self.rot_rad = x[0]
+        self.phase_offsets[self.phase_indices] = x[self.phase_indices]
+
+    def to_vector(self):
+        ret = np.zeros(self.nend)
+        ret[0] = self.rot_rad
+        ret[self.phase_indices] = self.phase_offsets[self.free_antennas]
+        return ret
+
+    def bounds(self, pointing_error):
+        bounds = [0] * self.nend
+        bounds[0] = self.pointing_bounds(pointing_center)
+        for i in range(1,self.nant):
+            tg = test_gains[i]
+            bounds[i] = (-np.pi*2, np.pi*2) # Bounds for phases
+
+        return bounds
+
+#def split_param(x):
+    #global GAIN_INDICES, PHASE_INDICES
+    #rot_rad = x[0]
+    #if REIM:
+        #re = np.concatenate(([1], x[GAIN_INDICES]))
+        #im = np.concatenate(([0], x[PHASE_INDICES]))
+        #gains = np.sqrt(re * re + im * im)
+        #phase_offsets = np.arctan2(im, re)
+    #else:
+        #gains = np.concatenate(([1], x[GAIN_INDICES]))
+        #phase_offsets = np.concatenate(([0], x[PHASE_INDICES]))
+
+    #return rot_rad, gains, phase_offsets
+
+
+
+#def join_param(rot_rad, gains, phase_offsets):
+    #ret = np.zeros(NEND)
+    #ret[0] = rot_rad
+    #if REIM:
+        #z = gains[FREE_ANTENNAS] * np.exp(phase_offsets[FREE_ANTENNAS] * 1j)
+        #ret[GAIN_INDICES] = z.real
+        #ret[PHASE_INDICES] = z.imag
+    #else:
+        #ret[GAIN_INDICES] = gains[FREE_ANTENNAS]
+        #ret[PHASE_INDICES] = phase_offsets[FREE_ANTENNAS]
+    #return ret
+
+##def setup_indices():
+    ##global REIM, NEND, FREE_ANTENNASGAIN_INDICES, PHASE_INDICES, NANT
+
+    ##if REIM:
+        ##NEND=int(2*NANT-1)
+        ##FREE_ANTENNAS=slice(1,NANT)
+        ##GAIN_INDICES=slice(1,NANT)
+        ##PHASE_INDICES=slice(NANT, NEND)
+    ##else:
+        ##NEND=NANT
+        ##FREE_ANTENNAS=slice(1,NANT)
+        ##GAIN_INDICES=None
+        ##PHASE_INDICES=slice(1, NEND)
+
+
+#def param_to_json(x):
+    #rot_rad, gains, phase_offsets = split_param(x)
+    #ret = {
+        #"gain": np.round(gains, 4).tolist(),
+        #"rot_degrees": np.degrees(rot_rad),
+        #"phase_offset": np.round(phase_offsets, 4).tolist(),
+    #}
+    #return ret
+
+
+#def output_param(x, fp=None):
+    #ret = param_to_json(x)
+    #if fp is None:
+        #print(json.dumps(ret, indent=4, separators=(",", ": ")))
+    #else:
+        #json.dump(ret, fp, indent=4, separators=(",", ": "))
 
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled
-    rot_rad, gains, phase_offsets = split_param(opt_parameters)
+    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam
+
+    myParam.from_vector(opt_parameters)
+    rot_rad = myParam.rot_rad
+    gains = myParam.gains
+    phase_offsets = myParam.phase_offsets
 
     ret_zone = 0.0
     ret_std = 0.0
 
-    ant_idxs = np.arange(24)
+    ant_idxs = np.arange(NANT)
 
     for i, m in enumerate(measurements):
         cv, ts, src_list, prn_list, obs = m
@@ -211,44 +346,26 @@ import json
 
 
 class MyTakeStep(object):
-    def __init__(self, stepsize, pointing_rad, max_delay):
+    def __init__(self, stepsize, pointing_rad):
         self.stepsize = stepsize
         self.pointing_rad = pointing_rad
-        self.max_delay = max_delay
 
     def __call__(self, x):
-        s = self.stepsize
-        
-        pnt = self.pointing_rad*s
-        
-        if REIM:
-            offset = join_param(np.random.uniform(-pnt, pnt),
-                                np.random.uniform(-s, s, 24),       # Re
-                                np.random.uniform(-s, s, 24))       # Im
-
-            ret = x + offset
-        else:
-            phase_step = s * self.max_delay*np.pi
-            offset = join_param(np.random.uniform(-pnt, pnt),
-                                np.random.uniform(-s/10, s/10, 24), # Gain
-                                np.random.uniform(-phase_step, phase_step, 24))       # Phase
-
-            ret = x + offset
-            ret[PHASE_INDICES] = np.fmod(ret[PHASE_INDICES], np.pi*2)
-        return ret
+        return myParam.take_step(x, self.stepsize)
 
 
 def bh_callback(x, f, accepted):
     global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
     print(f"BH f={f} accepted {accepted}")
-    output_param(x)
+    myParam.from_vector(x)
+    myParam.output()
     if accepted:
         bh_basin_progress.append([N_IT, f])
         with open(f"{output_directory}/bh_basin_progress.json", "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
         with open(f"{output_directory}/BH_basin_{f:5.3f}_{N_IT}.json", "w") as fp:
-            output_param(x, fp)
+            myParam.output(fp)
 
         mask = masks[0]
         ift_sel = ift_scaled*mask
@@ -279,7 +396,7 @@ def bh_callback(x, f, accepted):
         plt.colorbar()
         plt.xlim(1, -1)
         plt.ylim(-1, 1)
-        plt.title(f)
+        plt.title(f"f={f:4.2f} r={np.degrees(myParam.rot_rad):4.2f}")
         plt.scatter(x_list, y_list, c="red", s=5)
         plt.xlabel("East-West")
         plt.ylabel("North-South")
@@ -356,7 +473,6 @@ if __name__ == "__main__":
 
     ARGS = parser.parse_args()
 
-    REIM = not ARGS.use_phases
     # Load calibration data from the data directory
 
     data_dir = ARGS.data
@@ -397,8 +513,21 @@ if __name__ == "__main__":
 
     config = settings.from_api_json(info["info"], ant_pos)
 
-    init_parameters = join_param(0.0, gains, phase_offsets)
-    output_param(init_parameters)
+    pointing_error = np.radians(3)
+    pointing_center = np.radians(ARGS.pointing)
+
+    if ARGS.use_phases:
+        myParam = ParamPhase(NANT, pointing_error, gains)
+        myParam.rot_rad = 0
+    else:
+        myParam = ParamReIm(NANT, pointing_error)
+        myParam.rot_rad = 0
+        myParam.gains = gains
+        myParam.phase_offsets = phase_offsets
+
+    #init_parameters = join_param(0.0, gains, phase_offsets)
+    #output_param(init_parameters)
+    myParam.output()
 
     masks = []
     inv_masks = []
@@ -526,7 +655,7 @@ if __name__ == "__main__":
     window_deg = 8.0
 
     s = calc_score(
-        init_parameters,
+        myParam.to_vector(),
         config,
         measurements,
         window_deg,
@@ -545,27 +674,14 @@ if __name__ == "__main__":
         show=False,
     )
 
-    pointing_error = np.radians(3)
-    pointing_center = np.radians(ARGS.pointing)
 
     print(f"Calculating which antennas to ignore {best_acq}")
     test_gains = best_acq / best_acq[0]
     print(f"Estimated gains: {test_gains}")
 
-    bounds = [0] * NEND
-    bounds[0] = (pointing_center-pointing_error, pointing_center + pointing_error)  # Bounds for the rotation parameter
-    max_delay = ARGS.max_delay
-    if REIM:
-        for i in range(1,NEND):
-            bounds[i] = (-2, 2) # Bounds for all other parameters (real and imaginary components)
-    else:
-        for i in range(1,NANT):
-            tg = test_gains[i]
-            bounds[i] = (max(0,tg - 0.1), tg + 0.1) # Bounds for all other parameters (real and imaginary components)
-            bounds[i + NANT-1] = (-np.pi*2*max_delay, np.pi*2*max_delay) # Bounds for all other parameters (real and imaginary components)
+    bounds = myParam.bounds(pointing_center)
 
-
-
+    init_parameters = myParam.to_vector()
 
     zero_list = ARGS.ignore
     if zero_list is not None:
@@ -599,7 +715,7 @@ if __name__ == "__main__":
             init_parameters,
             niter=ARGS.iterations,
             T=0.5,
-            take_step=MyTakeStep(1.0, pointing_error, max_delay),
+            take_step=MyTakeStep(1.0, pointing_error),
             disp=True,
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
@@ -607,8 +723,9 @@ if __name__ == "__main__":
         with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
-    rot_rad = ret.x[0]
-    output_json = param_to_json(ret.x)
+    myParam.from_vector(ret.x)
+    rot_rad = myParam.rot_rad
+    output_json = myParam.to_json()
     output_json["message"] = ret.message
     output_json["optimum"] = ret.fun
     output_json["iterations"] = ret.nit

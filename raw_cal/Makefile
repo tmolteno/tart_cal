@@ -13,13 +13,14 @@ POINTING=0
 
 API=https://tart.elec.ac.nz/${TARGET}
 DATA_DIR=cal_data_${TARGET}
+ARGS=--use-phase
 
 plot:
 	python3 plot_antenna_array.py --data ${DATA_DIR}
 
 cal:
 	rm -f cal_out_${TARGET}/*
-	python3 tart_cal.py --api ${API} --elevation 40 --cold-start --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir cal_out_${TARGET}
+	python3 tart_cal.py --api ${API} ${ARGS} --elevation 40 --cold-start --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir cal_out_${TARGET}
 
 	
 image:
