@@ -148,8 +148,8 @@ class ParamPhase(Param):
 
         phase_step = stepsize * np.pi
 
-        rot_step = np.random.uniform(-pnt, pnt)
-        phase_steps  = np.random.uniform(-phase_step, phase_step, self.nant-1)
+        rot_step = np.random.normal(0, pnt)
+        phase_steps  = np.random.normal(0, phase_step, self.nant-1)
 
         ret = x + np.concatenate(([rot_step], phase_steps))
 
@@ -239,7 +239,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         out_zone = 0 # np.std(outmask_img)
 
-        zone_score = (in_zone)**2
+        zone_score = (in_zone)**3
         ret_zone += -zone_score
 
     ret_std = ret_std / len(measurements)
