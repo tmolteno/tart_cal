@@ -152,6 +152,8 @@ class ParamPhase(Param):
         phase_steps  = np.random.uniform(-phase_step, phase_step, self.nant-1)
 
         ret = x + np.concatenate(([rot_step], phase_steps))
+
+        ret[self.phase_indices] = np.fmod(ret[self.phase_indices], np.pi)
         return ret
 
     def from_vector(self, x):
@@ -176,69 +178,8 @@ class ParamPhase(Param):
 
         return bounds
 
-#def split_param(x):
-    #global GAIN_INDICES, PHASE_INDICES
-    #rot_rad = x[0]
-    #if REIM:
-        #re = np.concatenate(([1], x[GAIN_INDICES]))
-        #im = np.concatenate(([0], x[PHASE_INDICES]))
-        #gains = np.sqrt(re * re + im * im)
-        #phase_offsets = np.arctan2(im, re)
-    #else:
-        #gains = np.concatenate(([1], x[GAIN_INDICES]))
-        #phase_offsets = np.concatenate(([0], x[PHASE_INDICES]))
-
-    #return rot_rad, gains, phase_offsets
-
-
-
-#def join_param(rot_rad, gains, phase_offsets):
-    #ret = np.zeros(NEND)
-    #ret[0] = rot_rad
-    #if REIM:
-        #z = gains[FREE_ANTENNAS] * np.exp(phase_offsets[FREE_ANTENNAS] * 1j)
-        #ret[GAIN_INDICES] = z.real
-        #ret[PHASE_INDICES] = z.imag
-    #else:
-        #ret[GAIN_INDICES] = gains[FREE_ANTENNAS]
-        #ret[PHASE_INDICES] = phase_offsets[FREE_ANTENNAS]
-    #return ret
-
-##def setup_indices():
-    ##global REIM, NEND, FREE_ANTENNASGAIN_INDICES, PHASE_INDICES, NANT
-
-    ##if REIM:
-        ##NEND=int(2*NANT-1)
-        ##FREE_ANTENNAS=slice(1,NANT)
-        ##GAIN_INDICES=slice(1,NANT)
-        ##PHASE_INDICES=slice(NANT, NEND)
-    ##else:
-        ##NEND=NANT
-        ##FREE_ANTENNAS=slice(1,NANT)
-        ##GAIN_INDICES=None
-        ##PHASE_INDICES=slice(1, NEND)
-
-
-#def param_to_json(x):
-    #rot_rad, gains, phase_offsets = split_param(x)
-    #ret = {
-        #"gain": np.round(gains, 4).tolist(),
-        #"rot_degrees": np.degrees(rot_rad),
-        #"phase_offset": np.round(phase_offsets, 4).tolist(),
-    #}
-    #return ret
-
-
-#def output_param(x, fp=None):
-    #ret = param_to_json(x)
-    #if fp is None:
-        #print(json.dumps(ret, indent=4, separators=(",", ": ")))
-    #else:
-        #json.dump(ret, fp, indent=4, separators=(",", ": "))
-
-
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam
+    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam, mask_sums
 
     myParam.from_vector(opt_parameters)
     rot_rad = myParam.rot_rad
@@ -288,13 +229,14 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             inv_masks[i] = negative_mask
             masks[i] = mask
+            mask_sums[i] = np.sum(mask)
 
         mask = masks[i]
 
         masked_img = masks[i]*ift_scaled
         #outmask_img = inv_masks[i]*ift_scaled
 
-        in_zone = np.sum(np.sqrt(masked_img))  / np.sum(masks[i])
+        in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         out_zone = 0 # np.std(outmask_img)
 
         zone_score = (in_zone)**2
@@ -524,20 +466,10 @@ if __name__ == "__main__":
     pointing_error = np.radians(3)
     pointing_center = np.radians(ARGS.pointing)
 
-    if ARGS.use_phases:
-        myParam = ParamPhase(NANT, pointing_error, gains)
-        myParam.rot_rad = 0
-    else:
-        myParam = ParamReIm(NANT, pointing_error)
-        myParam.rot_rad = 0
-        myParam.gains = gains
-        myParam.phase_offsets = phase_offsets
 
-    #init_parameters = join_param(0.0, gains, phase_offsets)
-    #output_param(init_parameters)
-    myParam.output()
 
     masks = []
+    mask_sums = []
     inv_masks = []
     measurements = []
     for d, raw_file in zip(calib_info["data"], raw_files):
@@ -577,6 +509,7 @@ if __name__ == "__main__":
         measurements.append([cv, ts, src_list, prn_list, obs])
         masks.append(None)
         inv_masks.append(None)
+        mask_sums.append(None)
 
     # Acquisition to get expected list of SV's
 
@@ -655,10 +588,30 @@ if __name__ == "__main__":
         raise RuntimeError("No satellites visible")
     
     best_acq = best_acq / n
-    
+    print(f"Calculating which antennas to ignore {best_acq}")
+
+    test_gains = best_acq / best_acq[0]
+    print(f"Estimated gains: {test_gains}")
+
+
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
-        
+
+    if ARGS.use_phases:
+        myParam = ParamPhase(NANT, pointing_error, test_gains)
+        myParam.rot_rad = 0
+    else:
+        myParam = ParamReIm(NANT, pointing_error)
+        myParam.rot_rad = 0
+        myParam.gains = test_gains
+        myParam.phase_offsets = phase_offsets
+
+    bounds = myParam.bounds(pointing_center, test_gains)
+
+    #init_parameters = join_param(0.0, gains, phase_offsets)
+    #output_param(init_parameters)
+    myParam.output()
+
     N_IT = 0
     window_deg = 8.0
 
@@ -683,11 +636,7 @@ if __name__ == "__main__":
     )
 
 
-    print(f"Calculating which antennas to ignore {best_acq}")
-    test_gains = best_acq / best_acq[0]
-    print(f"Estimated gains: {test_gains}")
 
-    bounds = myParam.bounds(pointing_center, test_gains)
 
     init_parameters = myParam.to_vector()
 
