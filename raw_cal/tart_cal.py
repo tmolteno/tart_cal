@@ -474,7 +474,7 @@ if __name__ == "__main__":
     measurements = []
     for d, raw_file in zip(calib_info["data"], raw_files):
             
-        print(d)
+        print(d, raw_file)
         vis_json, src_json = d
         cv, ts, src_list = load_data_from_json(
             vis_json,
@@ -501,6 +501,8 @@ if __name__ == "__main__":
 
         # Load the data here from the raw file
         obs = observation.Observation_Load(raw_file)
+        
+        print(obs.timestamp , cv.get_timestamp())
         corr = correlator.Correlator()
         vis = corr.correlate(obs)
         print(f"Timestamp: {vis.timestamp}")
