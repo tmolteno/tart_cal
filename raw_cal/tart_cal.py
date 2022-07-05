@@ -317,7 +317,7 @@ def bh_callback(x, f, accepted):
         with open(f"{output_directory}/BH_basin_{f:5.3f}_{N_IT}.json", "w") as fp:
             myParam.output(fp)
 
-        mask = masks[0]
+        mask = masks[-1]
         ift_sel = ift_scaled*mask
         x_list, y_list = elaz.get_source_coordinates(src_list)
 
