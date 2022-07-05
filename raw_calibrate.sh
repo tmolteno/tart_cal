@@ -20,6 +20,9 @@ CALIB_OUTPUT=${DIR}/${TART_CAL_METHOD}_opt_json.json
 
 POINTING=0
 
+echo "Working directory: ${DIR}"
+echo "Data directory: ${DATA_DIR}"
+
 # Get calibration data
 python3 /app/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 

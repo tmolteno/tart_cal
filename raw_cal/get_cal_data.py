@@ -33,6 +33,8 @@ def split_param(x):
 
 def load_data(api, config):
     logger.info(f"Loading new data from {api.root}")
+    logger.info("Setting vis mode")
+    resp = api.post_payload_with_token("mode/vis", {})
     vis_json = api.get("imaging/vis")
     ts = api_imaging.vis_json_timestamp(vis_json)
     logger.info(f"Getting catalog from {api.catalog_url(config, datestr=ts.isoformat())}")

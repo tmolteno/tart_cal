@@ -11,6 +11,6 @@ services:
       TART_NCAL: 1                                # use 1 for debugging only
       TART_CAL_INT: 30                            # Interval between measurements
     volumes:
-      - ./calibration_results:/work
+      - ~/calibration_results:/work
     command: /raw_calibrate.sh
 
