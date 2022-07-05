@@ -688,13 +688,16 @@ if __name__ == "__main__":
     pos_list = (np.array(new_positions).T).tolist()
     output_json["antenna_positions"] = pos_list
 
-    with open("{}/{}_opt_json.json".format(output_directory, method), "w") as fp:
+    json_fname = f"{output_directory}/{method}_opt_json.json"
+    with open(json_fname, "w") as fp:
         json.dump(output_json, fp, indent=4, separators=(",", ": "))
-
-    print(f"Optimal solution: {output_json}")
+    print(f"Optimal solution: rot_degrees={output_json['rot_degrees']}")
+    print(f"Optimal solution written to file {json_fname}")
     f_history_json = {}
     f_history_json["start"] = s
     f_history_json["history"] = f_vs_iteration
 
-    with open("{}/{}_history.json".format(output_directory, method), "w") as fp:
+    hist_fname = f"{output_directory}/{method}_history.json"
+    with open(hist_fname, "w") as fp:
         json.dump(f_history_json, fp, indent=4, separators=(",", ": "))
+    print(f"Basin history written to file {hist_fname}")
