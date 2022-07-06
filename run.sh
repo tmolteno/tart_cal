@@ -19,5 +19,5 @@ docker run --rm \
     -e TART_API=https://tart.elec.ac.nz/$1/ \
     -e TART_NCAL=2 \
     -e TART_CAL_INT=10 \
-    -v ~/calibration_results:/app \
+    -v ~/calibration_results:/work \
     --name=cal ghcr.io/tmolteno/tart_cal /tart_calibrate.sh

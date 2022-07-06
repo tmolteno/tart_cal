@@ -8,9 +8,24 @@ This instance requires a lot of processing power (approx 1 hour of CPU time on a
 
 The process spends the first hour capturing 3 sets of observations at 25 minute intervals. After this, it uses these observations and the positions of the known radio sources at the time of observation. The entire process will take approximately two hours to complete (with only the second hour being very CPU intensive).
 
-## run via docker-compose.yml
+## Raw Cal : New Calibration using GPS-based gains
+
+There are two scripts tart_calibrate.sh, and raw_calibrate.sh. The latter is the new one which is now recommended.
+
+This container is automatically built and placed in the github container registry [https://ghcr.io/tmolteno/tart_cal]
+
+    docker run --rm \
+        -e TART_LOGIN_PW=replaceme \
+        -e TART_API=https://tart.elec.ac.nz/signal/ \
+        -e TARGET=signal \
+        -e TART_NCAL=2 \
+        -e TART_CAL_INT=20 \
+        -v ~/calibration_results:/work \
+        --name=cal ghcr.io/tmolteno/tart_cal /raw_calibrate.sh
+
 
 #### Configuration
+
 Configure environment variables in docker-compose.yml
 
 #### Build and run
@@ -55,7 +70,7 @@ Add this command as a cron job. Modify the TART_LOGIN_PW and TART_API to refer t
         -e TART_API=https://tart.elec.ac.nz/signal/ \
         -e TART_NCAL=3 \
         -e TART_CAL_INT=30 \
-        -v ~/calibration_results:/app \
+        -v ~/calibration_results:/work \
         --name=cal ghcr.io/tmolteno/tart_cal /tart_calibrate.sh
     
 ### Debugging

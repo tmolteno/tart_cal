@@ -5,7 +5,7 @@ services:
     image: ghcr.io/tmolteno/tart_cal
     build: .                                # Path to Dockerfile
     environment:
-      TART_LOGIN_PW: sharkbait                    # used for pushing new gains to API. Match to set in the telescope API.
+      TART_LOGIN_PW:                          # Password for authorized access to the telescope API.
       TART_API: https://tart.elec.ac.nz/signal/   # telescope API endpoint
       TARGET: signal
       TART_NCAL: 1                                # use 1 for debugging only
@@ -14,3 +14,6 @@ services:
       - ~/calibration_results:/work
     command: /raw_calibrate.sh
 
+#
+#   Put the invironment variables in a file called '.env' in the same directory as this
+#   TART_LOGIN_PW=foobar
