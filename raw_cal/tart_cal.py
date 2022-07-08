@@ -49,12 +49,13 @@ NANT=24
 
 
 class Param:
-    def __init__(self, nant, pointing_error):
+    def __init__(self, nant, pointing_center, pointing_error):
         self.nant = nant
         self.gains = None
         self.phase_offsets = None
         self.rot_rad = None
         self.pointing_error = pointing_error
+        self.pointing_center = pointing_center
 
     def take_step(self, stepsize):
         pass
@@ -78,14 +79,14 @@ class Param:
         else:
             json.dump(ret, fp, indent=4, separators=(",", ": "))
 
-    def pointing_bounds(self, pointing_center):
-        return (pointing_center-self.pointing_error, pointing_center + self.pointing_error)
+    def pointing_bounds(self):
+        return (self.pointing_center-self.pointing_error, self.pointing_center + self.pointing_error)
 
 
 class ParamReIm(Param):
 
-    def __init__(self, nant, pointing_error):
-        super().__init__(nant, pointing_error)
+    def __init__(self, nant, pointing_center, pointing_error):
+        super().__init__(nant, pointing_center, pointing_error)
         self.nend=int(2*self.nant-1)
         self.free_antennas=slice(1,self.nant)
         self.re_indices=slice(1, self.nant)
@@ -106,9 +107,9 @@ class ParamReIm(Param):
         ret[self.im_indices] = z.imag
         return ret
 
-    def bounds(self, pointing_center, test_gains):
+    def bounds(self, test_gains):
         bounds = np.empty(self.nend, dtype=(float,2))
-        bounds[0] = self.pointing_bounds(pointing_center)
+        bounds[0] = self.pointing_bounds()
         bounds[self.re_indices] = (-2,2)
         bounds[self.im_indices] = (-2,2)
 
@@ -133,8 +134,8 @@ class ParamReIm(Param):
 
 class ParamPhase(Param):
 
-    def __init__(self, nant, pointing_error, gains):
-        super().__init__(nant, pointing_error)
+    def __init__(self, nant, pointing_center, pointing_error, gains):
+        super().__init__(nant, pointing_center, pointing_error)
         self.gains = gains
         self.nend = nant
         self.free_antennas=slice(1, self.nant)
@@ -166,9 +167,9 @@ class ParamPhase(Param):
         ret[self.phase_indices] = self.phase_offsets[self.free_antennas]
         return ret
 
-    def bounds(self, pointing_error, test_gains):
+    def bounds(self, test_gains):
         bounds = [0] * self.nend
-        bounds[0] = self.pointing_bounds(pointing_center)
+        bounds[0] = self.pointing_bounds()
         for i in range(1,self.nant):
             tg = test_gains[i]
             if tg < 0.01:
@@ -413,6 +414,9 @@ if __name__ == "__main__":
     
     parser.add_argument(
         "--pointing", type=float, default=0.0, help="Initial estimate of pointing offset (degrees)")
+    
+    parser.add_argument(
+        "--pointing-range", type=float, default=3.0, help="Pointing search range (degrees)")
 
     parser.add_argument(
         "--max-delay", type=float, default=1, help="Maximum delay in wavelengths")
@@ -463,7 +467,7 @@ if __name__ == "__main__":
 
     config = settings.from_api_json(info["info"], ant_pos)
 
-    pointing_error = np.radians(3)
+    pointing_error = np.radians(ARGS.pointing_range)
     pointing_center = np.radians(ARGS.pointing)
 
 
@@ -600,15 +604,15 @@ if __name__ == "__main__":
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
 
     if ARGS.use_phases:
-        myParam = ParamPhase(NANT, pointing_error, test_gains)
-        myParam.rot_rad = 0
+        myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)
+        myParam.rot_rad = pointing_center
     else:
-        myParam = ParamReIm(NANT, pointing_error)
-        myParam.rot_rad = 0
+        myParam = ParamReIm(NANT, pointing_center, pointing_error)
+        myParam.rot_rad = pointing_center
         myParam.gains = test_gains
         myParam.phase_offsets = phase_offsets
 
-    bounds = myParam.bounds(pointing_center, test_gains)
+    bounds = myParam.bounds(test_gains)
 
     #init_parameters = join_param(0.0, gains, phase_offsets)
     #output_param(init_parameters)
