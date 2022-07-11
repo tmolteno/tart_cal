@@ -5,6 +5,9 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
+from tart.operation import settings
+
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser(
         description="Visualize calibration data.",
@@ -38,5 +41,20 @@ if __name__=="__main__":
     fig, ax = plt.subplots(figsize=(5,5))
 
     ax.plot(x,y,'.')
+    
+    rot_deg = 30
+    
+    print(ant_pos)
+    new_positions = settings.rotate_location(
+        rot_deg, np.array(ant_pos).T
+    )
+
     ax.grid(True)
+
+    new_pos = np.array(new_positions).T
+    print(new_pos.T)
+    
+    x = new_pos.T[0]
+    y = new_pos.T[1]
+    ax.plot(x,y,'o')
     plt.show()
