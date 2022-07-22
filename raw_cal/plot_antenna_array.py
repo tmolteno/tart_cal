@@ -21,6 +21,14 @@ if __name__=="__main__":
         help="Calibration Input Data Directory.",
     )
 
+    parser.add_argument(
+        "--rot",
+        required=False,
+        type=float,
+        default=30,
+        help="Rotated 30 degrees.",
+    )
+
     ARGS = parser.parse_args()
 
     # Load calibration data from the data directory
@@ -40,9 +48,9 @@ if __name__=="__main__":
 
     fig, ax = plt.subplots(figsize=(5,5))
 
-    ax.plot(x,y,'.')
+    ax.plot(x,y,'.', label='original positions')
     
-    rot_deg = 30
+    rot_deg = ARGS.rot
     
     print(ant_pos)
     new_positions = settings.rotate_location(
@@ -56,5 +64,6 @@ if __name__=="__main__":
     
     x = new_pos.T[0]
     y = new_pos.T[1]
-    ax.plot(x,y,'o')
+    ax.plot(x,y,'o', label=f"Rotated {rot_deg} deg")
+    plt.legend()
     plt.show()
