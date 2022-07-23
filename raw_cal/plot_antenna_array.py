@@ -50,6 +50,11 @@ if __name__=="__main__":
 
     ax.plot(x,y,'.', label='original positions')
     
+    for i in range(0,len(x)):
+        ax.text(x[i],y[i],f"{i}")
+
+    ax.set_xlim([-2.5,2.5])
+    ax.set_ylim((-2.5,2.5))
     rot_deg = ARGS.rot
     
     print(ant_pos)
@@ -60,7 +65,11 @@ if __name__=="__main__":
     ax.grid(True)
 
     new_pos = np.array(new_positions).T
-    print(new_pos.T)
+    print("New Positions")
+    x = new_pos.T[0]
+    y = new_pos.T[1]
+    for i in range(0, len(x)):
+        print(f"Ant {i}: {x[i]:6.3f}, {y[i]:6.3f}, r={np.sqrt(x[i]**2 + y[i]**2):4.3f}")
     
     x = new_pos.T[0]
     y = new_pos.T[1]

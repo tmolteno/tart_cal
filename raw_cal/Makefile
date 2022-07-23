@@ -18,7 +18,7 @@ DATA_DIR=cal_data_${TARGET}
 ARGS=--use-phase
 
 plot:
-	python3 plot_antenna_array.py --data ${DATA_DIR}
+	python3 plot_antenna_array.py --data ${DATA_DIR} --rot ${POINTING}
 
 cal:
 	rm -f cal_out_${TARGET}/*
