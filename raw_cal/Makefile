@@ -12,9 +12,9 @@ INTERVAL=10
 POINTING=0
 POINTING_RANGE=3
 ITERATIONS=500
-
+LABEL=""
 API=https://tart.elec.ac.nz/${TARGET}
-DATA_DIR=cal_data_${TARGET}
+DATA_DIR=cal_data_${TARGET}${LABEL}
 ARGS=--use-phase
 
 plot:
@@ -22,7 +22,7 @@ plot:
 
 cal:
 	rm -f cal_out_${TARGET}/*
-	python3 tart_cal.py --api ${API} ${ARGS} --elevation 40 --cold-start --pointing ${POINTING} --pointing-range ${POINTING_RANGE} --data ${DATA_DIR} --iterations ${ITERATIONS} --dir cal_out_${TARGET}
+	python3 tart_cal.py --api ${API} ${ARGS} --elevation 45 --cold-start --pointing ${POINTING} --pointing-range ${POINTING_RANGE} --data ${DATA_DIR} --iterations ${ITERATIONS} --dir cal_out_${TARGET}
 
 	
 image:
