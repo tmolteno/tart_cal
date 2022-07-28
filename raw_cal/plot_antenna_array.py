@@ -48,7 +48,7 @@ if __name__=="__main__":
 
     fig, ax = plt.subplots(figsize=(5,5))
 
-    ax.plot(x,y,'.', label='original positions')
+    ax.plot(x,y,'.', label='Original positions')
     
     for i in range(0,len(x)):
         ax.text(x[i],y[i],f"{i}")
@@ -73,6 +73,6 @@ if __name__=="__main__":
     
     x = new_pos.T[0]
     y = new_pos.T[1]
-    ax.plot(x,y,'o', label=f"Rotated {rot_deg} deg")
+    ax.plot(x,y,'o', label=f"Rotated {rot_deg} deg", alpha=0.5)
     plt.legend()
     plt.show()
