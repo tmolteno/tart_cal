@@ -22,7 +22,7 @@ plot:
 
 cal:
 	rm -f cal_out_${TARGET}/*
-	python3 tart_cal.py --api ${API} ${ARGS} --elevation 30 --cold-start --pointing ${POINTING} --pointing-range ${POINTING_RANGE} --data ${DATA_DIR} --iterations ${ITERATIONS} --dir cal_out_${TARGET}
+	python3 tart_cal.py --api ${API} ${ARGS} --elevation 40 --cold-start --pointing ${POINTING} --pointing-range ${POINTING_RANGE} --data ${DATA_DIR} --iterations ${ITERATIONS} --dir cal_out_${TARGET}
 
 	
 image:

@@ -582,9 +582,16 @@ if __name__ == "__main__":
             ph = np.array(acq['phases'])
             st = np.array(acq['strengths'])
 
+            sv = acq['sv']
+
+
             mean_str = np.median(st)
 
             if mean_str > 7.0:
+
+                if sv['el'] <= ARGS.elevation:
+                    print(f"Add sv {sv}")
+
                 best_acq += st
                 n = n + 1
 
