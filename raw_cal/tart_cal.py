@@ -478,7 +478,6 @@ if __name__ == "__main__":
     measurements = []
     for d, raw_file in zip(calib_info["data"], raw_files):
 
-        print(d, raw_file)
         vis_json, src_json = d
         cv, ts, src_list = load_data_from_json(
             vis_json,
@@ -578,7 +577,6 @@ if __name__ == "__main__":
     n = 0
     best_score = -999
     for acquisition_data in full_acquisition_data:
-        print(acquisition_data.keys())
         for d in acquisition_data:
             acq = acquisition_data[d]
             ph = np.array(acq['phases'])
