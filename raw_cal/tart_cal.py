@@ -180,7 +180,8 @@ class ParamPhase(Param):
         return bounds
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam, mask_sums
+    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam, mask_sums, full_sky_mask
+    
 
     myParam.from_vector(opt_parameters)
     rot_rad = myParam.rot_rad
@@ -205,10 +206,22 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         )
 
         abs_ift = np.abs(cal_ift)
-        ift_std = np.std(abs_ift)
+        ift_std = np.median(abs_ift)
         ift_scaled = abs_ift / ift_std
 
-        ret_std += -np.sqrt(ift_scaled.max())  # Peak signal to noise.
+        if full_sky_mask is None:
+            x0,y0 = n_fft // 2, n_fft // 2
+            d = (n_fft // 3)**2
+            full_sky_mask = np.zeros_like(ift_scaled)
+            for y in range(full_sky_mask.shape[0]):
+                for x in range(full_sky_mask.shape[1]):
+                    r2 = (y - y0)**2 + (x - x0)**2
+                    p = np.exp(-(r2/d))
+                    if p > 0.2:
+                        p = 1
+                    full_sky_mask[y, x] = p
+            
+        ret_std += -np.sqrt((ift_scaled*full_sky_mask).max())/2  # Peak signal to noise.
 
         if masks[i] is None:
             print("Creating mask")
@@ -216,12 +229,15 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             for s in src_list:
                 x0,y0 = s.get_px(n_fft)
-                d = 2*s.deg_to_pix(n_fft, window_deg)
+                d = 1*s.deg_to_pix(n_fft, window_deg)
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2
-                        p = np.exp(-r2/d)
-                        mask[y, x] += p
+                        p = np.exp(-(r2/d))
+                        #if p > 0.5:
+                            #p = 1.0
+                        if (mask[y, x] < p):
+                            mask[y, x] = p
 
             # Zone outside of mask
             print(f"Max mask {np.max(mask)}, {np.min(mask)}")
@@ -231,6 +247,22 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             inv_masks[i] = negative_mask
             masks[i] = mask
             mask_sums[i] = np.sum(mask)
+            
+            plt.figure()
+            plt.imshow(
+                mask,
+                extent=[-1, 1, -1, 1],
+                vmin=0,
+            )  # vmax=8
+            plt.colorbar()
+            plt.xlim(1, -1)
+            plt.ylim(-1, 1)
+            plt.xlabel("East-West")
+            plt.ylabel("North-South")
+            plt.tight_layout()
+            plt.savefig(f"{output_directory}/mask_{i}.png")
+            plt.close()
+
 
         mask = masks[i]
 
@@ -240,7 +272,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         out_zone = 0 # np.std(outmask_img)
 
-        zone_score = (in_zone)**3
+        zone_score = (in_zone)**2
         ret_zone += -zone_score
 
     ret_std = ret_std / len(measurements)
@@ -336,6 +368,22 @@ def bh_callback(x, f, accepted):
         plt.ylabel("North-South")
         plt.tight_layout()
         plt.savefig(f"{output_directory}/mask_{f:5.3f}_{N_IT:05d}.png")
+        plt.close()
+
+        plt.figure()
+        plt.imshow(
+            ift_scaled*full_sky_mask,
+            extent=[-1, 1, -1, 1],
+            vmin=0,
+        )  # vmax=8
+        plt.colorbar()
+        plt.xlim(1, -1)
+        plt.ylim(-1, 1)
+        plt.scatter(x_list, y_list, c="red", s=5)
+        plt.xlabel("East-West")
+        plt.ylabel("North-South")
+        plt.tight_layout()
+        plt.savefig(f"{output_directory}/full_sky_mask_{f:5.3f}_{N_IT:05d}.png")
         plt.close()
 
         plt.figure()
@@ -441,7 +489,7 @@ if __name__ == "__main__":
     ant_pos = calib_info["ant_pos"]
     config = settings.from_api_json(info["info"], ant_pos)
     
-    flag_list = ARGS.ignore  # [4, 5, 14, 22] # optionally remove some unused antennas
+    flag_list = ARGS.ignore
     print(f"Flagging {flag_list}")
 
     method = ARGS.method
@@ -473,6 +521,7 @@ if __name__ == "__main__":
     # Now deal with the measurements.
 
     masks = []
+    full_sky_mask = None
     mask_sums = []
     inv_masks = []
     measurements = []

@@ -15,14 +15,15 @@ ITERATIONS=500
 LABEL=""
 API=https://tart.elec.ac.nz/${TARGET}
 DATA_DIR=cal_data_${TARGET}${LABEL}
+OUT_DIR=cal_out_${TARGET}${LABEL}
 ARGS=--use-phase
 
 plot:
 	python3 plot_antenna_array.py --data ${DATA_DIR} --rot ${POINTING}
 
 cal:
-	rm -f cal_out_${TARGET}/*
-	python3 tart_cal.py --api ${API} ${ARGS} --elevation 40 --cold-start --pointing ${POINTING} --pointing-range ${POINTING_RANGE} --data ${DATA_DIR} --iterations ${ITERATIONS} --dir cal_out_${TARGET}
+	rm -f ${OUT_DIR}/*
+	python3 tart_cal.py --api ${API} ${ARGS} --elevation 50  --pointing ${POINTING} --pointing-range ${POINTING_RANGE} --data ${DATA_DIR} --iterations ${ITERATIONS} --dir ${OUT_DIR}
 
 	
 image:
