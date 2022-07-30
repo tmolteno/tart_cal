@@ -116,11 +116,12 @@ class ParamReIm(Param):
         for i in range(1,self.nant):
             tg = test_gains[i]
             if tg < 0.01:
-                bounds[i] = (0, 1e-3)
-                bounds[i + self.nant-1] = (0, 1e-3)
-            #else:
-                #bounds[i] = (-test_gains[i-1], test_gains[i-1])
-                #bounds[i + self.nant-1] = (-test_gains[i-1], test_gains[i-1])
+                blim = 1e-3
+            else:
+                blim = tg * 1.2
+
+            bounds[i] = (-blim, blim)
+            bounds[i + self.nant-1] = (-blim, blim)
 
         return bounds
 
@@ -142,6 +143,7 @@ class ParamPhase(Param):
         self.gains = gains
         self.nend = nant
         self.free_antennas=slice(1, self.nant)
+        # self.phase_indices=slice(1, self.nant)
         self.phase_indices=slice(1, self.nant)
         self.phase_offsets = np.zeros_like(self.gains)
 
@@ -182,6 +184,64 @@ class ParamPhase(Param):
             else:
                 bounds[i] = (-np.pi*2, np.pi*2) # Bounds for phases
                 bounds[i] = (-np.inf, np.inf) # Bounds for phases
+
+        return bounds
+
+class ParamGainPhase(Param):
+
+    def __init__(self, nant, pointing_center, pointing_error, gains):
+        super().__init__(nant, pointing_center, pointing_error)
+        self.gains = gains
+        self.nend=int(2*self.nant-1)
+        self.free_antennas=slice(1, self.nant)
+        self.gain_indices=slice(1, self.nant)
+        self.phase_indices=slice(self.nant, self.nend)
+        self.phase_offsets = np.zeros_like(self.gains)
+
+    def take_step(self, x, stepsize):
+        ret = np.zeros_like(x)
+
+        pnt = self.pointing_error*stepsize
+
+        phase_step = stepsize * np.pi
+        gain_step = stepsize * 0.1
+
+        rot_step    = np.random.normal(0, pnt)
+        phase_steps = np.random.normal(0, phase_step, self.nant-1)
+        gain_steps  = np.random.normal(0, gain_step, self.nant-1)
+
+        new_rot = x[0] + rot_step
+
+        new_gains = x[self.gain_indices] + gain_steps
+        new_phase = x[self.phase_indices] + phase_steps
+        new_phase[new_phase<-np.pi] += 2*np.pi
+        new_phase[new_phase>np.pi] -= 2*np.pi
+        ret = np.concatenate(([new_rot], new_gains, new_phase))
+        return ret
+
+    def from_vector(self, x):
+        self.rot_rad = x[0]
+        self.phase_offsets[self.free_antennas] = x[self.phase_indices]
+        self.gains[self.free_antennas] = x[self.gain_indices]
+
+    def to_vector(self):
+        ret = np.zeros(self.nend)
+        ret[0] = self.rot_rad
+        ret[self.phase_indices] = self.phase_offsets[self.free_antennas]
+        ret[self.gain_indices] = self.gains[self.free_antennas]
+        return ret
+
+    def bounds(self, test_gains):
+        bounds = [0] * self.nend
+        bounds[0] = self.pointing_bounds()
+        for i in range(1,self.nant):
+            tg = test_gains[i]
+            if tg < 0.01:
+                bounds[i] = (0, 1e-3)  # Gain bounds
+                bounds[i + self.nant - 1] = (0, 1e-3)  # Phase bounds
+            else:
+                bounds[i] = (test_gains[i] - 0.3, test_gains[i] + 0.3) # Bounds for gains
+                bounds[i + self.nant - 1] = (-np.inf, np.inf) # Bounds for phases
 
         return bounds
 
@@ -445,9 +505,14 @@ if __name__ == "__main__":
         help="Start from current knowledge of gains.",
     )
     parser.add_argument(
-        "--use-phases",
+        "--phases",
         action="store_true",
-        help="Use Real/Imaginary components rather than gains and phases.",
+        help="Use fixed gains from GPS and modify phases.",
+    )
+    parser.add_argument(
+        "--gains-phases",
+        action="store_true",
+        help="Use nearly fixed gains from GPS and modify gains and phases.",
     )
     parser.add_argument("--dir", required=False, default=".", help="Output directory.")
     parser.add_argument(
@@ -665,9 +730,14 @@ if __name__ == "__main__":
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
 
-    if ARGS.use_phases:
+    if ARGS.phases:
         myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)
         myParam.rot_rad = pointing_center
+        myParam.phase_offsets = phase_offsets
+    elif ARGS.gains_phases:
+        myParam = ParamGainPhase(NANT, pointing_center, pointing_error, test_gains)
+        myParam.rot_rad = pointing_center
+        myParam.phase_offsets = phase_offsets
     else:
         myParam = ParamReIm(NANT, pointing_center, pointing_error)
         myParam.rot_rad = pointing_center

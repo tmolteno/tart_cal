@@ -16,7 +16,7 @@ LABEL=""
 API=https://tart.elec.ac.nz/${TARGET}
 DATA_DIR=cal_data_${TARGET}${LABEL}
 OUT_DIR=cal_out_${TARGET}${LABEL}
-ARGS=--use-phase
+ARGS=--gains-phases
 ELEVATION=40
 plot:
 	python3 plot_antenna_array.py --data ${DATA_DIR} --rot ${POINTING}
