@@ -117,7 +117,10 @@ class ParamReIm(Param):
             tg = test_gains[i]
             if tg < 0.01:
                 bounds[i] = (0, 1e-3)
-                bounds[i + self.nant] = (0, 1e-3)
+                bounds[i + self.nant-1] = (0, 1e-3)
+            #else:
+                #bounds[i] = (-test_gains[i-1], test_gains[i-1])
+                #bounds[i + self.nant-1] = (-test_gains[i-1], test_gains[i-1])
 
         return bounds
 
@@ -152,9 +155,11 @@ class ParamPhase(Param):
         rot_step = np.random.normal(0, pnt)
         phase_steps  = np.random.normal(0, phase_step, self.nant-1)
 
-        ret = x + np.concatenate(([rot_step], phase_steps))
-
-        ret[self.phase_indices] = np.fmod(ret[self.phase_indices], np.pi)
+        new_rot = x[0] + rot_step
+        new_phase = x[self.phase_indices] + phase_steps
+        new_phase[new_phase<-np.pi] += 2*np.pi
+        new_phase[new_phase>np.pi] -= 2*np.pi
+        ret = np.concatenate(([new_rot], new_phase))
         return ret
 
     def from_vector(self, x):
@@ -176,6 +181,7 @@ class ParamPhase(Param):
                 bounds[i] = (0, 1e-3)
             else:
                 bounds[i] = (-np.pi*2, np.pi*2) # Bounds for phases
+                bounds[i] = (-np.inf, np.inf) # Bounds for phases
 
         return bounds
 
@@ -221,7 +227,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                         p = 1
                     full_sky_mask[y, x] = p
             
-        ret_std += -np.sqrt((ift_scaled*full_sky_mask).max())/2  # Peak signal to noise.
+        ret_std += -np.sqrt((ift_scaled*full_sky_mask).max())  # Peak signal to noise.
 
         if masks[i] is None:
             print("Creating mask")
@@ -234,10 +240,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2
                         p = np.exp(-(r2/d))
-                        #if p > 0.5:
-                            #p = 1.0
-                        if (mask[y, x] < p):
-                            mask[y, x] = p
+                        mask[y, x] += p
 
             # Zone outside of mask
             print(f"Max mask {np.max(mask)}, {np.min(mask)}")
@@ -245,6 +248,8 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             negative_mask[negative_mask < 0] = 0
 
             inv_masks[i] = negative_mask
+
+            #mask[mask>0.4] = 1
             masks[i] = mask
             mask_sums[i] = np.sum(mask)
             
@@ -255,6 +260,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                 vmin=0,
             )  # vmax=8
             plt.colorbar()
+            plt.title(f"Mask {ts}")
             plt.xlim(1, -1)
             plt.ylim(-1, 1)
             plt.xlabel("East-West")
@@ -272,7 +278,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         out_zone = 0 # np.std(outmask_img)
 
-        zone_score = (in_zone)**2
+        zone_score = (in_zone)**3
         ret_zone += -zone_score
 
     ret_std = ret_std / len(measurements)
@@ -665,7 +671,7 @@ if __name__ == "__main__":
     else:
         myParam = ParamReIm(NANT, pointing_center, pointing_error)
         myParam.rot_rad = pointing_center
-        myParam.gains = test_gains
+        myParam.gains = gains
         myParam.phase_offsets = phase_offsets
 
     bounds = myParam.bounds(test_gains)
@@ -753,6 +759,7 @@ if __name__ == "__main__":
         json.dump(output_json, fp, indent=4, separators=(",", ": "))
     print(f"Optimal solution: rot_degrees={output_json['rot_degrees']}")
     print(f"Optimal solution written to file {json_fname}")
+
     f_history_json = {}
     f_history_json["start"] = s
     f_history_json["history"] = f_vs_iteration
@@ -761,3 +768,5 @@ if __name__ == "__main__":
     with open(hist_fname, "w") as fp:
         json.dump(f_history_json, fp, indent=4, separators=(",", ": "))
     print(f"Basin history written to file {hist_fname}")
+
+    print(f"tart_upload_gains --api {ARGS.api} --gains {json_fname} --pw xxxx")
