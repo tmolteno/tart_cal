@@ -152,7 +152,7 @@ class ParamPhase(Param):
 
         pnt = self.pointing_error*stepsize
 
-        phase_step = stepsize * np.pi/2
+        phase_step = stepsize * np.pi
 
         rot_step = np.random.normal(0, pnt)
         phase_steps  = np.random.normal(0, phase_step, self.nant-1)
@@ -406,9 +406,9 @@ class MyTakeStep(object):
 def bh_callback(x, f, accepted):
     global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
     print(f"BH f={f:5.3f} accepted: {accepted}")
-    myParam.from_vector(x)
-    myParam.output()
     if accepted:
+        myParam.from_vector(x)
+        myParam.output()
         bh_basin_progress.append([N_IT, f])
         with open(f"{output_directory}/bh_basin_progress.json", "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
@@ -732,8 +732,9 @@ if __name__ == "__main__":
 
     best_acq = best_acq / n
     print(f"Calculating which antennas to ignore {best_acq}")
-
     test_gains = best_acq / best_acq[0]
+    test_gains[best_acq < 0.1] = 100000
+    test_gains = 1.0 / (test_gains)
     print(f"Estimated gains: {test_gains}")
 
 
