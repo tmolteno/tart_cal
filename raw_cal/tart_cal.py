@@ -118,7 +118,7 @@ class ParamReIm(Param):
             if tg < 0.01:
                 blim = 1e-3
             else:
-                blim = tg * 1.2
+                blim = 2 # tg * 1.2
 
             bounds[i] = (-blim, blim)
             bounds[i + self.nant-1] = (-blim, blim)
@@ -152,7 +152,7 @@ class ParamPhase(Param):
 
         pnt = self.pointing_error*stepsize
 
-        phase_step = stepsize * np.pi
+        phase_step = stepsize * np.pi/2
 
         rot_step = np.random.normal(0, pnt)
         phase_steps  = np.random.normal(0, phase_step, self.nant-1)
@@ -295,7 +295,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             for s in src_list:
                 x0,y0 = s.get_px(n_fft)
-                d = 1*s.deg_to_pix(n_fft, window_deg)
+                d = 2*s.deg_to_pix(n_fft, window_deg)
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2
@@ -528,6 +528,15 @@ if __name__ == "__main__":
         default=300,
         help="Number of iterations for basinhopping",
     )
+
+    parser.add_argument(
+        "--num-meas",
+        required=False,
+        type=int,
+        default=999,
+        help="Number of measurements to use",
+    )
+
     parser.add_argument(
         "--elevation", type=float, default=30.0, help="Elevation threshold for sources")
     
@@ -636,7 +645,8 @@ if __name__ == "__main__":
         inv_masks.append(None)
         mask_sums.append(None)
 
-
+        if len(measurements) >= ARGS.num_meas:
+            break
 
     # Acquisition to get expected list of SV's
 
