@@ -295,7 +295,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             for s in src_list:
                 x0,y0 = s.get_px(n_fft)
-                d = 2*s.deg_to_pix(n_fft, window_deg)
+                d = s.deg_to_pix(n_fft, window_deg)
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2
@@ -734,7 +734,7 @@ if __name__ == "__main__":
     print(f"Calculating which antennas to ignore {best_acq}")
     test_gains = best_acq / best_acq[0]
     test_gains[best_acq < 0.1] = 100000
-    test_gains = 1.0 / (test_gains)
+    test_gains = 1.0 / (test_gains) # These factors would make all SV appear equal brightness.
     print(f"Estimated gains: {test_gains}")
 
 

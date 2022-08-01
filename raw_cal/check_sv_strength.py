@@ -149,6 +149,7 @@ if __name__ == "__main__":
             ph = np.array(acq['phases'])
             st = np.array(acq['strengths'])
 
+            [print(p) for p in ph]
             mean_str = np.median(st)
 
             if mean_str > 7.0:
