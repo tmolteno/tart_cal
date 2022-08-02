@@ -405,7 +405,7 @@ class MyTakeStep(object):
 
 def bh_callback(x, f, accepted):
     global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
-    print(f"BH f={f:5.3f} accepted: {accepted}")
+    #print(f"BH f={f:5.3f} accepted: {accepted}")
     if accepted:
         myParam.from_vector(x)
         myParam.output()
