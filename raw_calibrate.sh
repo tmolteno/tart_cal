@@ -26,7 +26,7 @@ echo "Data directory: ${DATA_DIR}"
 python3 /app/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 
 # Perform optimization
-python3 /app/tart_cal.py --api ${TART_API} --use-phases --elevation 40 --cold-start --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir ${OUTPUT_DIR}
+python3 /app/tart_cal.py --api ${TART_API} --phases --elevation 45 --cold-start --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir ${OUTPUT_DIR}
 
 # Log outputs
 CAL_OUTPUT_FILE=${WORKING_DIR}/cal_${DATESTR}.json
