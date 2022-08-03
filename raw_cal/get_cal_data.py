@@ -23,19 +23,14 @@ from tart_tools import api_imaging
 
 logger = logging.getLogger()
 
-def split_param(x):
-    rot_degrees = x[0]
-    re = np.concatenate(([1], x[1:24]))
-    im = np.concatenate(([0], x[24:47]))
-    gains = np.sqrt(re * re + im * im)
-    phase_offsets = np.arctan2(im, re)
-    return rot_degrees, gains, phase_offsets
 
+def set_vis_mode(api):
+    logger.info("Setting vis mode")
+    resp = api.post_with_token("mode/vis")
 
 def load_data(api, config):
     logger.info(f"Loading new data from {api.root}")
-    logger.info("Setting vis mode")
-    resp = api.post_payload_with_token("mode/vis", {})
+    set_vis_mode(api)
     vis_json = api.get("imaging/vis")
     
     logger.info(f"Vis Json timestamp {vis_json['timestamp']}")
@@ -52,10 +47,16 @@ def load_data(api, config):
 def get_raw_data(api, config):
     global ARGS
     try:
+        logger.info("Setting acquire raw to 2**16")
+        resp = api.put("acquire/raw/num_samples_exp/16")
         logger.info("Setting raw mode")
-        resp = api.post_payload_with_token("mode/raw", {})
-        logger.info("Sleeping 60 seconds to wait for raw data...")
-        time.sleep(60)
+        resp = api.post_with_token("mode/raw")
+        interval = 2
+        logger.info(f"Sleeping {interval} seconds to wait for raw data...")
+        time.sleep(interval)
+
+        set_vis_mode(api)
+        time.sleep(5)
         resp_raw = api.get("raw/data")
         entry = resp_raw[0]
         data_url = urllib.parse.urljoin(f"{api.root}/", entry["filename"])
@@ -76,8 +77,7 @@ def get_raw_data(api, config):
     except Exception as e:
         logger.exception(e)
     finally:
-        logger.info("Setting vis mode")
-        resp = api.post_payload_with_token("mode/vis", {})
+        set_vis_mode(api)
 
 if __name__ == "__main__":
 
