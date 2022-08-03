@@ -600,12 +600,17 @@ if __name__ == "__main__":
 
     # Now deal with the measurements.
 
+    # Load the raw observations
+    raw_obs = []
+    for raw_file in raw_files:
+        raw_obs.append(observation.Observation_Load(raw_file))
+    
     masks = []
     full_sky_mask = None
     mask_sums = []
     inv_masks = []
     measurements = []
-    for d, raw_file in zip(calib_info["data"], raw_files):
+    for d in calib_info["data"]:
 
         vis_json, src_json = d
         cv, ts, src_list = load_data_from_json(
@@ -631,10 +636,18 @@ if __name__ == "__main__":
             except:
                 print(prn)
 
-        # Load the data here from the raw file
-        obs = observation.Observation_Load(raw_file)
-
-        print(obs.timestamp , cv.get_timestamp())
+        # Find best raw observation
+        obs = None
+        best_dt = 9e99
+        for o in raw_obs:
+            dt = (o.timestamp - cv.get_timestamp()).total_seconds()
+            if dt < best_dt:
+                best_dt = dt
+                obs = o
+        
+        if (dt > 72):
+            raise RuntimeError(f"Broken timestamps dt={dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
+        
         corr = correlator.Correlator()
         vis = corr.correlate(obs)
         print(f"Timestamp: {vis.timestamp}")

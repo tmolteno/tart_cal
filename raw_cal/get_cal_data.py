@@ -10,6 +10,7 @@ import time
 import json
 import logging
 import os
+import datetime
 
 import urllib.parse
 
@@ -36,7 +37,11 @@ def load_data(api, config):
     logger.info("Setting vis mode")
     resp = api.post_payload_with_token("mode/vis", {})
     vis_json = api.get("imaging/vis")
+    
+    logger.info(f"Vis Json timestamp {vis_json['timestamp']}")
     ts = api_imaging.vis_json_timestamp(vis_json)
+    #logger.info(f"Timestamp {ts} dt={(ts - datetime.datetime.utcnow())}")
+    
     logger.info(f"Getting catalog from {api.catalog_url(config, datestr=ts.isoformat())}")
     src_json = api.get_url(api.catalog_url(config, datestr=ts.isoformat()))
     logger.info("Loading Complete")
