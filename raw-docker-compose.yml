@@ -9,6 +9,7 @@ services:
       TART_API: https://tart.elec.ac.nz/signal/   # telescope API endpoint
       TARGET: signal
       TART_NCAL: 1                                # use 1 for debugging only
+      TART_UPLOAD: 0                              # Set to 1 to upload results
       TART_CAL_INT: 30                            # Interval between measurements
     volumes:
       - ~/calibration_results:/work

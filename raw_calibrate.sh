@@ -32,11 +32,14 @@ python3 /app/tart_cal.py --api ${TART_API} --phases --elevation 45 --cold-start 
 CAL_OUTPUT_FILE=${WORKING_DIR}/cal_${DATESTR}.json
 mv ${CALIB_OUTPUT} ${CAL_OUTPUT_FILE}
 echo "Calibration output is in ${CAL_OUTPUT_FILE}"
-/usr/local/bin/tart_upload_gains --api ${TART_API} --gains ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
 
-echo "Uploading new antenna positions"
-/usr/local/bin/tart_upload_antenna_positions --api ${TART_API} --file ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
 
+if [ ${TART_UPLOAD} == 1 ]; then
+    echo "Uploading gains and antenna positions"
+
+    /usr/local/bin/tart_upload_gains --api ${TART_API} --gains ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
+    /usr/local/bin/tart_upload_antenna_positions --api ${TART_API} --file ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
+fi
 # Clean up
 rm ${DIR}/*
 rmdir ${DIR}
