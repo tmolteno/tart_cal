@@ -639,16 +639,16 @@ if __name__ == "__main__":
         # Find best raw observation
         obs = None
         best_dt = 9e99
-        print(cv.get_timestamp())
+        print(f"Vis timestamp {cv.get_timestamp()}")
         for o in raw_obs:
-            print(o.timestamp)
+            print(f"   obs.ts = {o.timestamp}")
             dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
             if dt < best_dt:
                 best_dt = dt
                 obs = o
         
         if (best_dt > 72):
-            raise RuntimeError(f"Broken timestamps dt={dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
+            raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
         
         corr = correlator.Correlator()
         vis = corr.correlate(obs)

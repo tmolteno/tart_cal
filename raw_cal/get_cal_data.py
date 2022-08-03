@@ -31,6 +31,7 @@ def set_vis_mode(api):
 def load_data(api, config):
     logger.info(f"Loading new data from {api.root}")
     set_vis_mode(api)
+    time.sleep(3) # Wait for vis mode...
     vis_json = api.get("imaging/vis")
     
     logger.info(f"Vis Json timestamp {vis_json['timestamp']}")
