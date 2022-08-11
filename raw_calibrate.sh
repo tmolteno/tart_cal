@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Continuous Calibration Script. This should be run at regular intervals.
 #
@@ -17,7 +17,12 @@ DATA_DIR=${DIR}/cal_data_${TARGET}
 OUTPUT_DIR=${DIR}/cal_out_${TARGET}
 CALIB_OUTPUT=${OUTPUT_DIR}/${TART_CAL_METHOD}_opt_json.json
 
-POINTING=0
+# Set up default calibration parameters. These can be overridden by setting the env variables externally.
+: "${TART_CAL_ITERATIONS:=500}"
+: "${TART_CAL_ELEVATION:=45}"
+: "${TART_CAL_INT:=30}"
+: "${TART_CAL_POINTING:=0}"
+: "${TART_CAL_ARGS:=""}"
 
 echo "Working directory: ${DIR}"
 echo "Data directory: ${DATA_DIR}"
@@ -26,7 +31,7 @@ echo "Data directory: ${DATA_DIR}"
 python3 /app/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 
 # Perform optimization
-python3 /app/tart_cal.py --api ${TART_API} --phases --elevation 45 --cold-start --pointing ${POINTING} --data ${DATA_DIR} --iterations 500 --dir ${OUTPUT_DIR}
+python3 /app/tart_cal.py --api ${TART_API} ${TART_CAL_ARGS} --elevation ${TART_CAL_ELEVATION} --iterations ${TART_CAL_ITERATIONS} --pointing ${TART_CAL_POINTING} --data ${DATA_DIR}  --dir ${OUTPUT_DIR}
 
 # Log outputs
 CAL_OUTPUT_FILE=${WORKING_DIR}/cal_${DATESTR}.json

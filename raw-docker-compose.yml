@@ -6,11 +6,13 @@ services:
     build: .                                # Path to Dockerfile
     environment:
       TART_LOGIN_PW:                          # Password for authorized access to the telescope API.
-      TART_API: https://tart.elec.ac.nz/signal/   # telescope API endpoint
-      TARGET: signal
-      TART_NCAL: 1                                # use 1 for debugging only
+      TART_API: https://tart.elec.ac.nz/rhodes/   # telescope API endpoint
+      TARGET: rhodes
+      TART_NCAL: 2                                # use 1 for debugging only
       TART_UPLOAD: 0                              # Set to 1 to upload results
       TART_CAL_INT: 30                            # Interval between measurements
+      TART_CAL_ARGS: "--phases"                           # Specify any other arguments --phases
+      TART_CAL_ITERATIONS: 1000                   # Number of iterations for basinhopping
     volumes:
       - ~/calibration_results:/work
     command: /raw_calibrate.sh

@@ -286,9 +286,8 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                     if p > 0.2:
                         p = 1
                     full_sky_mask[y, x] = p
-            
-        ret_std += -np.sqrt((ift_scaled*full_sky_mask).max())  # Peak signal to noise.
-
+        
+        
         if masks[i] is None:
             print("Creating mask")
             mask = np.zeros_like(ift_scaled)
@@ -329,23 +328,25 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             plt.savefig(f"{output_directory}/mask_{i}.png")
             plt.close()
 
+        sn_score = (ift_scaled*full_sky_mask).max()  # Peak signal to noise.
+        ret_std += -np.sqrt(sn_score)
 
         mask = masks[i]
-
         masked_img = masks[i]*ift_scaled
-        #outmask_img = inv_masks[i]*ift_scaled
-
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
-        out_zone = 0 # np.std(outmask_img)
+        #outmask_img = inv_masks[i]*ift_scaled
+        #out_zone = np.median(outmask_img)
 
         zone_score = (in_zone)**3
+        
+        
         ret_zone += -zone_score
 
     ret_std = ret_std / len(measurements)
     ret_zone = ret_zone / len(measurements)
 
     if N_IT % 100 == 0:
-        print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f} out: {out_zone:04.2f}", end='\r')
+        print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f}", end='\r')
 
     return (
         (ret_zone + ret_std),
@@ -821,7 +822,7 @@ if __name__ == "__main__":
             "method": "L-BFGS-B",
             "jac": False,
             "bounds": bounds,
-            "tol": 1e-5,
+            "tol": 1e-3,
             "options": {"maxcor": 48},
         }
         ret = optimize.basinhopping(
