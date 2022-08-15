@@ -22,7 +22,7 @@ CALIB_OUTPUT=${OUTPUT_DIR}/${TART_CAL_METHOD}_opt_json.json
 : "${TART_CAL_ELEVATION:=45}"
 : "${TART_CAL_INT:=30}"
 : "${TART_CAL_POINTING:=0}"
-: "${TART_CAL_ARGS:=""e}"
+: "${TART_CAL_ARGS:=""}"
 
 echo "Working directory: ${DIR}"
 echo "Data directory: ${DATA_DIR}"
