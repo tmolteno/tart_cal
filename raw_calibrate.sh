@@ -46,5 +46,5 @@ if [ ${TART_UPLOAD} == 1 ]; then
     /usr/local/bin/tart_upload_antenna_positions --api ${TART_API} --file ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
 fi
 # Clean up
-rm ${DIR}/*
+rm -r ${DIR}/*
 rmdir ${DIR}
