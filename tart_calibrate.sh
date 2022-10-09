@@ -31,5 +31,5 @@ echo "Uploading new antenna positions"
 /usr/local/bin/tart_upload_antenna_positions --api ${TART_API} --file ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
 
 # Clean up
-rm ${DIR}/*
+rm -r ${DIR}/*
 rmdir ${DIR}
