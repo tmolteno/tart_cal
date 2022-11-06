@@ -52,7 +52,7 @@ def get_raw_data(api, config):
         resp = api.put("acquire/raw/num_samples_exp/16")
         logger.info("Setting raw mode")
         resp = api.post_with_token("mode/raw")
-        interval = 2
+        interval = 3
         logger.info(f"Sleeping {interval} seconds to wait for raw data...")
         time.sleep(interval)
 
