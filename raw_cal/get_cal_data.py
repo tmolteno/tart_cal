@@ -72,7 +72,7 @@ def get_raw_data(api, config, vis_json):
         for e in resp_raw:
             e_ts = dateutil.parser.parse(e['timestamp'])
             dt = np.abs((e_ts - ts).total_seconds())
-            print(f"   raw obs.ts = {e_ts} dt={dt}")
+            logger.info(f"   raw obs.ts = {e_ts} dt={dt}")
             if dt < best_dt:
                 best_dt = dt
                 entry = e
