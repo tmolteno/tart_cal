@@ -637,13 +637,13 @@ if __name__ == "__main__":
             except:
                 print(prn)
 
-        # Find best raw observation
+        # Find best raw observation, with the closest timestamp
         obs = None
         best_dt = 9e99
         print(f"Vis timestamp {cv.get_timestamp()}")
         for o in raw_obs:
-            print(f"   obs.ts = {o.timestamp}")
             dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
+            print(f"   raw obs.ts = {o.timestamp} dt={dt}")
             if dt < best_dt:
                 best_dt = dt
                 obs = o

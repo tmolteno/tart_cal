@@ -11,8 +11,11 @@ import json
 import logging
 import os
 import datetime
+import dateutil
 
 import urllib.parse
+
+import numpy as np
 
 from tart.operation import settings
 from tart.imaging import visibility
@@ -45,10 +48,13 @@ def load_data(api, config):
 
 
 
-def get_raw_data(api, config):
+def get_raw_data(api, config, vis_json):
     global ARGS
     try:
-        logger.info("Setting acquire raw to 2**16")
+        ts = api_imaging.vis_json_timestamp(vis_json)
+
+        logger.info(f"Get raw data to match {ts}")
+        logger.info("Setting acquire raw to 2**16 to match")
         resp = api.put("acquire/raw/num_samples_exp/16")
         logger.info("Setting raw mode")
         resp = api.post_with_token("mode/raw")
@@ -59,7 +65,19 @@ def get_raw_data(api, config):
         set_vis_mode(api)
         time.sleep(5)
         resp_raw = api.get("raw/data")
-        entry = resp_raw[0]
+        
+        # Find the entry closest to the timestamp
+        best_dt = 9999
+        entry = None
+        for e in resp_raw:
+            e_ts = dateutil.parser.parse(e['timestamp'])
+            dt = np.abs((e_ts - ts).total_seconds())
+            print(f"   raw obs.ts = {e_ts} dt={dt}")
+            if dt < best_dt:
+                best_dt = dt
+                entry = e
+        
+        # entry = resp_raw[0]
         data_url = urllib.parse.urljoin(f"{api.root}/", entry["filename"])
 
         file_name = data_url.split("/")[-1]
@@ -149,7 +167,7 @@ if __name__ == "__main__":
     data = []
     for i in range(ARGS.n):
         vis_json, src_json = load_data(api, config)  # Get Calibration Data
-        get_raw_data(api, config)
+        get_raw_data(api, config, vis_json)
         data.append([vis_json, src_json])
         if i != ARGS.n - 1:
             logger.info("Sleeping {} minutes".format(ARGS.interval))
