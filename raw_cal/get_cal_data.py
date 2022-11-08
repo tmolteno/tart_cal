@@ -56,27 +56,32 @@ def get_raw_data(api, config, vis_json):
         logger.info(f"Get raw data to match {ts}")
         logger.info("Setting acquire raw to 2**16 to match")
         resp = api.put("acquire/raw/num_samples_exp/16")
-        logger.info("Setting raw mode")
-        resp = api.post_with_token("mode/raw")
-        interval = 3
-        logger.info(f"Sleeping {interval} seconds to wait for raw data...")
-        time.sleep(interval)
 
-        set_vis_mode(api)
-        time.sleep(5)
-        resp_raw = api.get("raw/data")
+        best_dt = 999999.0
+        while best_dt > 36:
+            logger.info("Setting raw mode")
+            resp = api.post_with_token("mode/raw")
+            interval = 2
+            logger.info(f"Sleeping {interval} seconds to wait for raw data...")
+            time.sleep(interval)
+
+            set_vis_mode(api)
+            time.sleep(3)
+            resp_raw = api.get("raw/data")
+            
+            # Find the entry closest to the timestamp
+            best_dt = 999999
+            entry = None
+            for e in resp_raw:
+                e_ts = dateutil.parser.parse(e['timestamp'])
+                dt = np.abs((e_ts - ts).total_seconds())
+                logger.info(f"   raw obs.ts = {e_ts} dt={dt}")
+                if dt < best_dt:
+                    best_dt = dt
+                    entry = e
+                    logger.info(f"   best ts = {e_ts} dt={dt}")
         
-        # Find the entry closest to the timestamp
-        best_dt = 9999
-        entry = None
-        for e in resp_raw:
-            e_ts = dateutil.parser.parse(e['timestamp'])
-            dt = np.abs((e_ts - ts).total_seconds())
-            logger.info(f"   raw obs.ts = {e_ts} dt={dt}")
-            if dt < best_dt:
-                best_dt = dt
-                entry = e
-        
+            
         # entry = resp_raw[0]
         data_url = urllib.parse.urljoin(f"{api.root}/", entry["filename"])
 
@@ -85,7 +90,7 @@ def get_raw_data(api, config, vis_json):
         file_path = os.path.join(ARGS.dir, file_name)
 
         if os.path.isfile(file_path):
-            if sha256_checksum(file_path) == entry["checksum"]:
+            if api_handler.sha256_checksum(file_path) == entry["checksum"]:
                 logger.info(f"Skipping {file_path}")
             else:
                 logger.info(f"Corrupted File: {file_path}")
