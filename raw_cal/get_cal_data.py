@@ -41,8 +41,11 @@ def load_data(api, config):
     ts = api_imaging.vis_json_timestamp(vis_json)
     #logger.info(f"Timestamp {ts} dt={(ts - datetime.datetime.utcnow())}")
     
-    logger.info(f"Getting catalog from {api.catalog_url(config, datestr=ts.isoformat())}")
-    src_json = api.get_url(api.catalog_url(config, datestr=ts.isoformat()))
+    cat_url = api.catalog_url(lon=config.get_lon(),
+                              lat=config.get_lat(),
+                              datestr=ts.isoformat())
+    logger.info(f"Getting catalog from {cat_url}")
+    src_json = api.get_url(cat_url)
     logger.info("Loading Complete")
     return vis_json, src_json
 
