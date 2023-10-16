@@ -6,7 +6,7 @@ services:
     build: .                                # Path to Dockerfile
     environment:
       TART_LOGIN_PW:                          # Password for authorized access to the telescope API.
-      TART_API: https://tart.elec.ac.nz/signal/   # telescope API endpoint
+      TART_API: https://tart.elec.ac.nz/rhodes/   # telescope API endpoint
       TARGET: signal
       TART_NCAL: 2                                # use 1 for debugging only
       TART_UPLOAD: 1                              # Set to 1 to upload results
