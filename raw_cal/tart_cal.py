@@ -108,7 +108,12 @@ class ParamReIm(Param):
         return ret
 
     def bounds(self, test_gains):
+        
         bounds = np.empty(self.nend, dtype=(float,2))
+
+        self.blim = np.zeros(self.nant-1)
+        self.blim[:] = test_gains[1:]
+        print(f"Blim: {self.blim}")
         bounds[0] = self.pointing_bounds()
         bounds[self.re_indices] = (-2,2)
         bounds[self.im_indices] = (-2,2)
@@ -116,21 +121,24 @@ class ParamReIm(Param):
         for i in range(1,self.nant):
             tg = test_gains[i]
             if tg < 0.01:
-                blim = 1e-3
+                blim = 0
             else:
                 blim = 2 # tg * 1.2
 
             bounds[i] = (-blim, blim)
             bounds[i + self.nant-1] = (-blim, blim)
 
+        self.bounds = bounds
         return bounds
 
     def take_step(self, x, stepsize):
         pnt = self.pointing_error*stepsize
 
+        bounded_step = stepsize*np.ones(self.nant-1)*self.blim
+        
         rot_step = np.random.uniform(-pnt, pnt)
-        re_step = np.random.uniform(-stepsize, stepsize, self.nant-1)   # Re
-        im_step = np.random.uniform(-stepsize, stepsize, self.nant-1)   # Im
+        re_step = np.random.uniform(-bounded_step, bounded_step)   # Re
+        im_step = np.random.uniform(-bounded_step, bounded_step)   # Im
 
         ret = x + np.concatenate(([rot_step], re_step, im_step))
 
@@ -722,6 +730,8 @@ if __name__ == "__main__":
     best_acq = np.zeros(NANT)
     n = 0
     best_score = -999
+    
+    good_satellites = []
     for acquisition_data in full_acquisition_data:
         for d in acquisition_data:
             acq = acquisition_data[d]
@@ -729,16 +739,15 @@ if __name__ == "__main__":
             st = np.array(acq['strengths'])
 
             sv = acq['sv']
-
-
-            mean_str = np.median(st)
-
-            if mean_str > 7.0:
-
-                if sv['el'] <= ARGS.elevation:
-                    print(f"Add sv {sv}")
-
-                best_acq += st
+            
+            if sv['el'] > ARGS.elevation:
+                mean_str = np.median(st)
+                if (mean_str > 7.0):
+                    good_satellites.append(sv)
+                    
+                good = np.where(st > 7.0)
+                
+                best_acq[good] += st[good]
                 n = n + 1
 
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
@@ -749,13 +758,30 @@ if __name__ == "__main__":
     best_acq = best_acq / n
     print(f"Calculating which antennas to ignore {best_acq}")
     test_gains = best_acq / best_acq[0]
-    test_gains[best_acq < 0.1] = 100000
     test_gains = 1.0 / (test_gains) # These factors would make all SV appear equal brightness.
+    test_gains[best_acq < 0.1] = 0
     print(f"Estimated gains: {test_gains}")
 
 
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
+    
+    for m in measurements:
+        cv, ts, src_list, prn_list, obs = m
+        print(src_list)
+        for s in src_list:
+            good = False
+            for g in good_satellites:
+
+                if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
+                    print(np.degrees(s.el_r),g)
+                    good = True
+            if good == False:
+                src_list.remove(s)
+                
+        print(src_list)
+        # print(good_satellites)
+    
 
     if ARGS.phases:
         myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)

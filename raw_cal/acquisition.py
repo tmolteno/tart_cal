@@ -221,14 +221,14 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
     #autocorrelation = result[freq,:]
 
-    #peak = result.max()
+    peak = result.max()
     #sd = result.std()
     ## signal_strength_sd = ((peak - result.mean()) / sd)
     #signal_strength_sd = (peak/ sd)
 
-    #offfreq = (freq + numberOfFrqBins//2) % numberOfFrqBins
-    #other_peak = result[offfreq].max()
-    #signal_strength_off = peak / other_peak
+    offfreq = (freq + numberOfFrqBins//2) % numberOfFrqBins
+    other_peak = result[offfreq].max()
+    signal_strength_off = peak / other_peak
 
     #blank_start = max(int(codephase - 3*samples_per_chip), 0)
     #blank_end = min(int(codephase + 3*samples_per_chip), int(samples_per_ms))
@@ -238,20 +238,20 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
     #signal_strength = signal_strength_sd
 
-    #start = time.time()
-    #try:
-        ##print("[%02d] best_xcorr=%f peak=%f sd=%f off=%f ratio=%f" % (PRN, best_xcorr, peak, signal_strength_sd, signal_strength_off, signal_strength_ratio))
-        #if ((signal_strength_off / 1.3) > 1.0):
-            #[codephase_frac_o, frequency_o, peak_o] = optimize_fit(PRN, best_data, 1, samples_per_ms, sampling_period, fc, freq, frequency, center_freq, codephase)
-            ##[codephase_frac_o, frequency_o, peak_o] = optimize_fit(PRN, x, epochs_available, samples_per_ms, sampling_period, fc, freq, frequency,center_freq, codephase)
-            #if (peak_o > best_xcorr):
-                #codephase_frac = codephase_frac_o
-                #frequency = frequency_o
-                #peak = peak_o
-    #except Exception as e:
-        #print(f"Optimization Failed {e.stacktrace()}")
-    #if debug:
-        #print(f"Optimization took {time.time()-start}")
+    start = time.time()
+    try:
+        #print("[%02d] best_xcorr=%f peak=%f sd=%f off=%f ratio=%f" % (PRN, best_xcorr, peak, signal_strength_sd, signal_strength_off, signal_strength_ratio))
+        if ((signal_strength_off / 1.3) > 1.0):
+            [codephase_frac_o, frequency_o, peak_o] = optimize_fit(PRN, best_data, 1, samples_per_ms, sampling_period, fc, freq, frequency, center_freq, codephase)
+            #[codephase_frac_o, frequency_o, peak_o] = optimize_fit(PRN, x, epochs_available, samples_per_ms, sampling_period, fc, freq, frequency,center_freq, codephase)
+            if (peak_o > best_xcorr):
+                codephase_frac = codephase_frac_o
+                frequency = frequency_o
+                peak = peak_o
+    except Exception as e:
+        print(f"Optimization Failed {e.stacktrace()}")
+    if debug:
+        print(f"Optimization took {time.time()-start}")
 
     # assert type(frequency) is np.float64, "frequency is not an float: %r" % frequency
     return [PRN, signal_strength, codephase_frac, frequency]
