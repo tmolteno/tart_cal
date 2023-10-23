@@ -160,7 +160,7 @@ class ParamPhase(Param):
 
         pnt = self.pointing_error*stepsize
 
-        phase_step = stepsize * np.pi
+        phase_step = stepsize * 2*np.pi
 
         rot_step = np.random.normal(0, pnt)
         phase_steps  = np.random.normal(0, phase_step, self.nant-1)
@@ -188,10 +188,10 @@ class ParamPhase(Param):
         for i in range(1,self.nant):
             tg = test_gains[i]
             if tg < 0.01:
-                bounds[i] = (0, 1e-3)
+                bounds[i] = (0, 0)
             else:
                 bounds[i] = (-np.pi*2, np.pi*2) # Bounds for phases
-                bounds[i] = (-np.inf, np.inf) # Bounds for phases
+                # bounds[i] = (-np.inf, np.inf) # Bounds for phases
 
         return bounds
 
@@ -759,6 +759,7 @@ if __name__ == "__main__":
     print(f"Calculating which antennas to ignore {best_acq}")
     test_gains = best_acq / best_acq[0]
     test_gains = 1.0 / (test_gains) # These factors would make all SV appear equal brightness.
+    test_gains = np.ones(NANT)
     test_gains[best_acq < 0.1] = 0
     print(f"Estimated gains: {test_gains}")
 
