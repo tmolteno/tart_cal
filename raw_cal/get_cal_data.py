@@ -28,8 +28,12 @@ logger = logging.getLogger()
 
 
 def set_vis_mode(api):
-    logger.info("Setting vis mode")
-    resp = api.post_with_token("mode/vis")
+    try:
+        logger.info("Setting vis mode")
+        resp = api.post_with_token("mode/vis")
+    except Exception as e:
+        logger.exception(e)
+        logger.error(f"Error in setting vis_mode")
 
 def load_data(api, config):
     logger.info(f"Loading new data from {api.root}")
@@ -164,7 +168,7 @@ if __name__ == "__main__":
 
     os.makedirs(ARGS.dir, exist_ok=True)
 
-    api = api_handler.AuthorizedAPIhandler(ARGS.api, ARGS.pw)
+    api = api_handler.APIhandler(ARGS.api)
 
     info = api.get("info")
     ant_pos = api.get("imaging/antenna_positions")
@@ -174,6 +178,8 @@ if __name__ == "__main__":
     ret = {"info": info, "ant_pos": ant_pos, "gains": gains_json}
     data = []
     for i in range(ARGS.n):
+        api = api_handler.AuthorizedAPIhandler(ARGS.api, ARGS.pw)
+
         vis_json, src_json = load_data(api, config)  # Get Calibration Data
         get_raw_data(api, config, vis_json)
         data.append([vis_json, src_json])

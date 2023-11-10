@@ -1,7 +1,7 @@
 
-TART_API="https://tart.elec.ac.nz/rhodes"
-TART_NCAL=3
-TART_CAL_INT=15
+TART_API="https://tart.elec.ac.nz/signal"
+TART_NCAL=4
+TART_CAL_INT=5
 DATA_DIR=./work
 OUTPUT_DIR=./out 
 TART_CAL_ELEVATION=55
