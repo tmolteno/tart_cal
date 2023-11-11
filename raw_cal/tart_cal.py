@@ -759,7 +759,7 @@ if __name__ == "__main__":
     print(f"Calculating which antennas to ignore {best_acq}")
     test_gains = best_acq / best_acq[0]
     test_gains = 1.0 / (test_gains) # These factors would make all SV appear equal brightness.
-    test_gains = np.ones(NANT)
+    # test_gains = np.ones(NANT)
     test_gains[best_acq < 0.1] = 0
     print(f"Estimated gains: {test_gains}")
 
