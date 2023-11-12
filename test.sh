@@ -1,16 +1,24 @@
 #!/bin/bash
 # while [ 0 ]; do ./test.sh ; done
 #
-TART_API="https://tart.elec.ac.nz/signal"
-TART_NCAL=3
-TART_CAL_INT=15
-DATA_DIR=./work
-OUTPUT_DIR=./out 
-TART_CAL_ELEVATION=50
-TART_CAL_ITERATIONS=500
-TART_CAL_POINTING=0
-TART_CAL_POINTING_RANGE=3
-TART_LOGIN_PW=sharkbait
+
+echo "Calibrating ${TARGET} pw=${TART_LOGIN_PW}"
+
+
+
+TART_API="https://tart.elec.ac.nz/${TARGET}"
+
+: "${TART_CAL_ITERATIONS:=500}"
+: "${TART_CAL_ELEVATION:=45}"
+: "${TART_NCAL:=3}"
+: "${TART_CAL_INT:=30}"
+: "${TART_CAL_POINTING:=0}"
+: "${TART_CAL_POINTING_RANGE:=3}"
+: "${TART_CAL_ARGS:=""}"
+
+DATA_DIR=./work_${TARGET}
+OUTPUT_DIR=./out_${TARGET} 
+
 # 
 
 if [ 0 ]
