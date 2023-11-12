@@ -287,15 +287,17 @@ def optimize_fit(PRN, x, epochs_available, samples_per_ms, sampling_period, fc, 
     #print("        [%02d] Codephase Optim %d -> %d (peak %f)" % (PRN, codephase, cp_max % samples_per_ms, cp_peak))
     codephase_frac = cp_max / samples_per_ms;
     # Now fit a gaussian to the codephase.
-    cw = 2
-    phases = np.arange(codephase-cw,codephase+cw)
-    values = autocorrelation[codephase-cw:codephase+cw]
-    popt, success = peak_fit(phases, values, [values.max(), 1e-1, codephase])
-    #print(popt, success)
-    if (success <= 4.0):
-        #print("        [%02d] Codephase Optim %d -> %f" % (PRN, codephase, popt[2]))
-        codephase_frac = popt[2] / samples_per_ms
-
+    try:
+        cw = 2
+        phases = np.arange(codephase-cw,codephase+cw)
+        values = autocorrelation[codephase-cw:codephase+cw]
+        popt, success = peak_fit(phases, values, [values.max(), 1e-1, codephase])
+        #print(popt, success)
+        if (success <= 4.0):
+            #print("        [%02d] Codephase Optim %d -> %f" % (PRN, codephase, popt[2]))
+            codephase_frac = popt[2] / samples_per_ms
+    except:
+        pass
     return [codephase_frac, frequency, cp_peak]
 
 def correlate_aux(frequency, signal, phasepoints, codefreq):

@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 
 import argparse
 import numpy as np
-import time
 import os
 
 from copy import deepcopy
@@ -678,7 +677,11 @@ if __name__ == "__main__":
     try:
         with open(f"{data_dir}/gps_acquisition.json", "r") as fp:
             full_acquisition_data = json.load(fp)
+            calculate = False
     except:
+        calculate = True
+        
+    if calculate:
         full_acquisition_data = []
         for m in measurements:
             cv, ts, src_list, prn_list, obs = m

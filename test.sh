@@ -3,19 +3,23 @@
 #
 TART_API="https://tart.elec.ac.nz/signal"
 TART_NCAL=3
-TART_CAL_INT=13
+TART_CAL_INT=15
 DATA_DIR=./work
 OUTPUT_DIR=./out 
 TART_CAL_ELEVATION=50
 TART_CAL_ITERATIONS=500
 TART_CAL_POINTING=0
-TART_CAL_POINTING_RANGE=4
+TART_CAL_POINTING_RANGE=3
 TART_LOGIN_PW=sharkbait
+# 
 
-rm -rf ${OUTPUT_DIR}
-mkdir -p ${DATA_DIR}
-rm -rf ${DATA_DIR}/*
-python3 raw_cal/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
+if [ 0 ]
+then
+    rm -rf ${OUTPUT_DIR}
+    mkdir -p ${DATA_DIR}
+    rm -rf ${DATA_DIR}/*
+    python3 raw_cal/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
+fi
 
 # Perform optimization
 # python3 raw_cal/pos_from_gps.py --api ${TART_API}  --elevation ${TART_CAL_ELEVATION}  --data ${DATA_DIR}  --dir ${OUTPUT_DIR}
@@ -25,10 +29,13 @@ python3 raw_cal/tart_cal.py --api ${TART_API}  \
                             --pointing ${TART_CAL_POINTING} \
                             --elevation ${TART_CAL_ELEVATION}  \
                             --data ${DATA_DIR}  \
-                            --phases --dir ${OUTPUT_DIR}
+                            --get-gains --phases \
+                            --dir ${OUTPUT_DIR}
 # 
 CALIB_OUTPUT=${OUTPUT_DIR}/BH_opt_json.json
 echo "Calibration output is in ${CALIB_OUTPUT}"
 
 tart_upload_gains --api ${TART_API} --gains ${CALIB_OUTPUT} --pw ${TART_LOGIN_PW}
+echo "Gains Uploaded"
 tart_upload_antenna_positions --api ${TART_API} --file ${CALIB_OUTPUT} --pw ${TART_LOGIN_PW}
+echo "Positions Uploaded"
