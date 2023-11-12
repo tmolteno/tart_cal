@@ -4,8 +4,6 @@
 
 echo "Calibrating ${TARGET} pw=${TART_LOGIN_PW}"
 
-
-
 TART_API="https://tart.elec.ac.nz/${TARGET}"
 
 : "${TART_CAL_ITERATIONS:=500}"
@@ -37,7 +35,7 @@ python3 raw_cal/tart_cal.py --api ${TART_API}  \
                             --pointing ${TART_CAL_POINTING} \
                             --elevation ${TART_CAL_ELEVATION}  \
                             --data ${DATA_DIR}  \
-                            --get-gains --phases \
+                            --get-gains ${TART_CAL_ARGS} \
                             --dir ${OUTPUT_DIR}
 # 
 CALIB_OUTPUT=${OUTPUT_DIR}/BH_opt_json.json

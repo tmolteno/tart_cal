@@ -788,14 +788,17 @@ if __name__ == "__main__":
     
 
     if ARGS.phases:
+        print("Using PHASES")
         myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)
         myParam.rot_rad = pointing_center
         myParam.phase_offsets = phase_offsets
     elif ARGS.gains_phases:
+        print("Using GAINS_PHASES")
         myParam = ParamGainPhase(NANT, pointing_center, pointing_error, test_gains)
         myParam.rot_rad = pointing_center
         myParam.phase_offsets = phase_offsets
     else:
+        print("Using REIM")
         myParam = ParamReIm(NANT, pointing_center, pointing_error)
         myParam.rot_rad = pointing_center
         myParam.gains = gains
