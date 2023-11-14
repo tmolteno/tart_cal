@@ -19,13 +19,11 @@ OUTPUT_DIR=./out_${TARGET}
 
 # 
 
-if [ 0 ]
-then
-    rm -rf ${OUTPUT_DIR}
-    mkdir -p ${DATA_DIR}
-    rm -rf ${DATA_DIR}/*
-    python3 raw_cal/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
-fi
+rm -rf ${OUTPUT_DIR}
+mkdir -p ${OUTPUT_DIR}
+mkdir -p ${DATA_DIR}
+rm -rf ${DATA_DIR}/*
+python3 raw_cal/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 
 # Perform optimization
 # python3 raw_cal/pos_from_gps.py --api ${TART_API}  --elevation ${TART_CAL_ELEVATION}  --data ${DATA_DIR}  --dir ${OUTPUT_DIR}
@@ -35,7 +33,7 @@ python3 raw_cal/tart_cal.py --api ${TART_API}  \
                             --pointing ${TART_CAL_POINTING} \
                             --elevation ${TART_CAL_ELEVATION}  \
                             --data ${DATA_DIR}  \
-                            --get-gains ${TART_CAL_ARGS} \
+                            ${TART_CAL_ARGS} \
                             --dir ${OUTPUT_DIR}
 # 
 CALIB_OUTPUT=${OUTPUT_DIR}/BH_opt_json.json
