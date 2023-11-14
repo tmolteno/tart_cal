@@ -630,7 +630,7 @@ if __name__ == "__main__":
             flag_list,
             el_threshold=ARGS.elevation,
         )
-
+        print(f"ts = {ts}")
         prn_list = []
         for sv in src_json:
             prn = sv['name'].split('PRN ')
