@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import argparse
 import numpy as np
 import os
+import logging
 
 from copy import deepcopy
 
@@ -34,6 +35,8 @@ from tart.util.angle import from_rad
 
 from tart_tools import api_imaging
 from tart_tools import api_handler
+
+logger = logging.getLogger()
 
 triplets = None
 ij_index = None
@@ -369,8 +372,10 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 def load_data_from_json(
     vis_json, src_json, config, gains, phases, flag_list, el_threshold
 ):
-
+    logger.info("Loading data from JSON")
+    logger.info(f"    vis_json = {vis_json['timestamp']}")
     cv, ts = api_imaging.vis_calibrated(vis_json, config, gains, phases, flag_list)
+    logger.info(f"    ts = {ts}")
     src_list = elaz.from_json(src_json, el_threshold)
     return cv, ts, src_list
 
@@ -486,6 +491,20 @@ def de_callback(xk, convergence):
 import glob
 
 if __name__ == "__main__":
+    
+    logger.setLevel(logging.DEBUG)
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    # create formatter
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    # add formatter to ch
+    ch.setFormatter(formatter)
+    # add ch to logger
+    logger.addHandler(ch)
+
     parser = argparse.ArgumentParser(
         description="Calibrate the tart telescope from downloaded data.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -578,7 +597,7 @@ if __name__ == "__main__":
     config = settings.from_api_json(info["info"], ant_pos)
     
     flag_list = ARGS.ignore
-    print(f"Flagging {flag_list}")
+    logger.info(f"Flagging {flag_list}")
 
     method = ARGS.method
     output_directory = ARGS.dir
@@ -588,11 +607,14 @@ if __name__ == "__main__":
     original_positions = deepcopy(config.get_antenna_positions())
 
     gains_json = calib_info["gains"]
-    print(gains_json["gain"])
-    gains = np.asarray(gains_json["gain"])
+    
+    g_json = gains_json["gain"]
+    logger.info(f"Gains JSON: {g_json}")
+    gains = np.asarray(g_json)
+    
     phase_offsets = np.asarray(gains_json["phase_offset"])
-    print(gains)
-    print(phase_offsets)
+    logger.info(f"Gains {gains}")
+    logger.info(f"Phases {phase_offsets}")
 
     if ARGS.cold_start and ARGS.get_gains:
         raise Exception("ERROR: Cannot Have both cold_start and get-gains specified")
@@ -642,26 +664,26 @@ if __name__ == "__main__":
             try:
                 prn_list.append((int(prn), sv))
             except:
-                print(prn)
+                logger.info(f"Ignoring: {prn}")
 
         # Find best raw observation, with the closest timestamp
         obs = None
         best_dt = 9e99
-        print(f"Vis timestamp {cv.get_timestamp()}")
+        logger.info(f"Vis timestamp {cv.get_timestamp()}")
         for o in raw_obs:
             dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
-            print(f"   raw obs.ts = {o.timestamp} dt={dt}")
+            logger.info(f"   raw obs.ts = {o.timestamp} dt={dt}")
             if dt < best_dt:
                 best_dt = dt
                 obs = o
         
-        if (best_dt > 72):
+        if (best_dt > 100):
             raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
         
         corr = correlator.Correlator()
         vis = corr.correlate(obs)
-        print(f"Timestamp: {vis.timestamp}")
-        print(f"Config: {vis.config.Dict}")
+        logger.info(f"Timestamp: {vis.timestamp}")
+        logger.info(f"Config: {vis.config.Dict}")
 
         measurements.append([cv, ts, src_list, prn_list, obs])
         masks.append(None)
