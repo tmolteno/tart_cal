@@ -18,7 +18,7 @@ OUTPUT_DIR=${DIR}/cal_out_${TARGET}
 CALIB_OUTPUT=${OUTPUT_DIR}/${TART_CAL_METHOD}_opt_json.json
 
 # Set up default calibration parameters. These can be overridden by setting the env variables externally.
-: "${TART_CAL_ITERATIONS:=500}"
+: "${TART_CAL_ITERATIONS:=700}"
 : "${TART_CAL_ELEVATION:=45}"
 : "${TART_CAL_INT:=30}"
 : "${TART_CAL_POINTING:=0}"

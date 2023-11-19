@@ -753,10 +753,12 @@ if __name__ == "__main__":
     print("Finding visible satellites")
 
     best_acq = np.zeros(NANT)
+    sv_noise = np.zeros(NANT) + 0
     n = 0
     best_score = -999
     
     good_satellites = []
+    
     for acquisition_data in full_acquisition_data:
         for d in acquisition_data:
             acq = acquisition_data[d]
@@ -765,23 +767,28 @@ if __name__ == "__main__":
 
             sv = acq['sv']
             
+            if sv['el'] < 15:
+                sv_noise += st
+                
             if sv['el'] > ARGS.elevation:
                 mean_str = np.median(st)
                 if (mean_str > 7.0):
                     good_satellites.append(sv)
                     
-                good = np.where(st > 7.0)
+                    good = np.where(st > 7.0)
                 
-                best_acq[good] += st[good]
-                n = n + 1
-
+                    best_acq[good] += st[good]
+                    n = n + 1
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
 
     if n == 0:
         raise RuntimeError("No satellites visible")
 
     best_acq = best_acq / n
-    print(f"Calculating which antennas to ignore {best_acq}")
+    sv_noise = sv_noise / n
+    s_n = best_acq / sv_noise
+    print(f"Best acw {best_acq}")
+    print(f"Noise level {s_n}")
     test_gains = best_acq / best_acq[0]
     test_gains = 1.0 / (test_gains) # These factors would make all SV appear equal brightness.
     # test_gains = np.ones(NANT)
@@ -792,20 +799,21 @@ if __name__ == "__main__":
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
     
-    for m in measurements:
-        cv, ts, src_list, prn_list, obs = m
-        print(src_list)
-        for s in src_list:
-            good = False
-            for g in good_satellites:
-
-                if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
-                    print(np.degrees(s.el_r),g)
-                    good = True
-            if good == False:
-                src_list.remove(s)
-                
-        print(src_list)
+#     for m in measurements:
+#         cv, ts, src_list, prn_list, obs = m
+#         print(src_list)
+#         for s in src_list:
+#             good = False
+#             for g in good_satellites:
+# 
+#                 if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
+#                     print(np.degrees(s.el_r),g)
+#                     good = True
+#             if good == False:
+#                 print(f"Removing satellite {s}")
+#                 src_list.remove(s)
+#                 
+#         print(src_list)
         # print(good_satellites)
     
 
