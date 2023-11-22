@@ -43,7 +43,7 @@ ij_index = None
 jk_index = None
 ik_index = None
 
-from acquisition import acquire
+import acquisition
 
 ift_scaled = None
 #REIM = True
@@ -729,7 +729,8 @@ if __name__ == "__main__":
 
                         num_samples_per_ms = sampling_freq // 1000
                         num_samples = int(2*num_samples_per_ms)
-                        [prn, strength, phase, freq] = acquire(raw_data[0:num_samples],
+
+                        [prn, strength, phase, freq] = acquisition.acquire_full(raw_data,
                                 sampling_freq=sampling_freq,
                                 center_freq=4.092e6, searchBand=6000, PRN=prn_i, debug=False)
 

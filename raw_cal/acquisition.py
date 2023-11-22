@@ -70,20 +70,146 @@ def peak_fit(xdata,ydata,p0):
     return scipy.optimize.leastsq(residuals, p0, args=(ydata, xdata))
 
 # FFTW variables
+full_fft_in = 0
+full_fft_out = 0
+full_fft_machine = 0
+full_ifft_in = 0
+full_ifft_out = 0
+full_ifft_machine = 0
+
+def correlate_aux_full(frequency, signal, phasepoints, codefreq):
+    expfreq = np.exp(phasepoints*frequency)
+
+    global full_fft_in, full_fft_machine, full_ifft_in, full_ifft_machine
+    full_fft_in[:] = expfreq * signal
+    IQfreq1 = full_fft_machine()
+
+    full_ifft_in[:] = IQfreq1 * codefreq
+    ifft_result = full_ifft_machine()
+
+    corr = np.abs(ifft_result) / np.sqrt(len(signal))
+    return corr
+
+def acquire_aux_full(x, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints):
+    total_samples = x.shape[0]
+    result1 = np.empty((numberOfFrqBins, total_samples))
+    for i in range(0, numberOfFrqBins):
+        acqRes1 = correlate_aux_full(fc[i], x, phasepoints, codefreq)
+        result1[i,:] = acqRes1
+    return result1
+
+def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
+
+    pyfftw.interfaces.cache.enable()
+    pyfftw.interfaces.cache.set_keepalive_time(50.0)
+
+    sampling_period = 1.0/sampling_freq
+    samples_per_ms = sampling_freq/1000.0    # Samples per millisecond
+    samples_per_chip = samples_per_ms / 1023
+    _samples_per_chunk = int(samples_per_ms)
+
+    epochs_available = np.floor(np.size(x)/samples_per_ms)
+
+    total_samples = int(epochs_available*_samples_per_chunk)
+    print(f"Acquisition: total_samples={total_samples}")
+    freqBinSize= 0.5e3
+    numberOfFrqBins = int(round(2*searchBand/freqBinSize)) + 1
+    fc = np.linspace(center_freq - searchBand, center_freq + searchBand, numberOfFrqBins)
+
+    # Construct variables for use of FFTW
+    align = pyfftw.simd_alignment
+    dtype = 'complex64'
+    #dtype = 'complex128'
+    global full_fft_in, full_fft_out, full_fft_machine, full_ifft_in, full_ifft_out, full_ifft_machine
+
+
+    write_wisdom=False
+    try:
+        import pickle
+        wisdom = pickle.load( open( "wisdom_full.wis", "rb" ) )
+        pyfftw.import_wisdom(wisdom)
+    except:
+        write_wisdom = True
+        print('no wisdom file')
+
+    full_fft_in = pyfftw.empty_aligned(total_samples, dtype=dtype, n=align)
+    full_fft_out = pyfftw.empty_aligned(total_samples, dtype=dtype, n=align)
+    full_ifft_in = pyfftw.empty_aligned(total_samples, dtype=dtype, n=align)
+    full_ifft_out = pyfftw.empty_aligned(total_samples, dtype=dtype, n=align)
+
+    start = time.time()
+
+    full_fft_machine = pyfftw.FFTW(full_fft_in, full_fft_out, flags=('FFTW_MEASURE',))
+    full_ifft_machine = pyfftw.FFTW(full_ifft_in, full_ifft_out, direction='FFTW_BACKWARD', flags=('FFTW_MEASURE',))
+
+    if debug:
+        print('setup took', time.time()-start)
+
+    if write_wisdom:
+        wisdom = pyfftw.export_wisdom()
+        import pickle
+        pickle.dump( wisdom, open( "wisdom_full.wis", "wb" ) )
+
+
+    code_samples = np.arange(total_samples)
+    # Generate a local signal sampled at the right sampling rate, and no phase change.
+    start = time.time()
+    code = gold(samples_per_ms, PRN, epochs_available)
+    if debug:
+        print('gold code gen took', time.time()-start)
+
+    start = time.time()
+    codefreq = np.conj(np.fft.fft(code))
+
+    phase_const = 2.0j*np.pi*sampling_period
+    phasepoints = code_samples * phase_const
+    if debug:
+        print('gold code numpyfft took', time.time()-start)
+
+
+    xcorr = np.zeros((numberOfFrqBins, total_samples)) # arguments need to be type int.
+
+    start = time.time()
+
+    if debug:
+        print('num epochs:', epochs_available)
+
+    # Get the correspi
+    epoch_data = x[0:total_samples]
+    epoch_xcorr = acquire_aux_full(epoch_data, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints)
+
+    sn0 = epoch_xcorr.max()#/epoch_xcorr.std()
+    best_sn0 = sn0
+    best_data = epoch_data
+
+    if debug:
+        print(f"corr {sn0} took {time.time()-start}")
+
+    signal_strength = best_sn0 #best_xcorr/best_epoch_xcorr.std()
+    # Calculate the average correlation
+    result = epoch_xcorr
+
+    frequencies = result.max(1)
+    freq = frequencies.argmax()
+    frequency = fc[freq] - center_freq     # This is the doppler
+
+    phases = result.max(0)
+    codephase = phases.argmax() % int(samples_per_ms)
+    codephase_frac = codephase / samples_per_ms
+
+    # assert type(frequency) is np.float64, "frequency is not an float: %r" % frequency
+    return [PRN, signal_strength, codephase_frac, frequency]
+
+
+
+
+# FFTW variables
 fft_in = 0
 fft_out = 0
 fft_machine = 0
 ifft_in = 0
 ifft_out = 0
 ifft_machine = 0
-
-fft2d_in = 0
-fft2d_out = 0
-ifft2d_in = 0
-ifft2d_out = 0
-fft2d_machine = 0
-ifft2d_machine = 0
-
 
 def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
