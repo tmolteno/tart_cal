@@ -250,7 +250,8 @@ class ParamGainPhase(Param):
                 bounds[i] = (0, 1e-3)  # Gain bounds
                 bounds[i + self.nant - 1] = (0, 1e-3)  # Phase bounds
             else:
-                bounds[i] = (test_gains[i] * 0.8, test_gains[i] * 1.2) # Bounds for gains
+                bounds_err = 0.1
+                bounds[i] = (test_gains[i] * (1-bounds_err), test_gains[i] * 1+(bounds_err)) # Bounds for gains
                 bounds[i + self.nant - 1] = (-np.inf, np.inf) # Bounds for phases
 
         return bounds
@@ -837,7 +838,7 @@ if __name__ == "__main__":
         print("Using GAINS_PHASES")
         myParam = ParamGainPhase(NANT, pointing_center, pointing_error, test_gains)
         myParam.rot_rad = pointing_center
-        myParam.gains = gains
+        myParam.gains = test_gains
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 0.2
         bh_T = 0.2
@@ -851,6 +852,7 @@ if __name__ == "__main__":
         bh_T = 0.5
 
     bounds = myParam.bounds(test_gains)
+    print(f"Bounds {bounds}")
 
     myParam.output()
 
@@ -884,7 +886,6 @@ if __name__ == "__main__":
 
     zero_list = ARGS.ignore
 
-    print(f"Bounds {bounds}")
     np.random.seed(555)  # Seeded to allow replication.
 
     if method == "NM":
