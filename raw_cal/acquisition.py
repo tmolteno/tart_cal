@@ -111,8 +111,11 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     epochs_available = np.floor(np.size(x)/samples_per_ms)
 
     total_samples = int(epochs_available*_samples_per_chunk)
-    print(f"Acquisition: total_samples={total_samples}")
-    freqBinSize= 0.5e3
+
+    if debug:
+        print(f"Acquisition: total_samples={total_samples}")
+
+    freqBinSize= 0.3e3
     numberOfFrqBins = int(round(2*searchBand/freqBinSize)) + 1
     fc = np.linspace(center_freq - searchBand, center_freq + searchBand, numberOfFrqBins)
 

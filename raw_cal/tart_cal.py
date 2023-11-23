@@ -250,7 +250,7 @@ class ParamGainPhase(Param):
                 bounds[i] = (0, 1e-3)  # Gain bounds
                 bounds[i + self.nant - 1] = (0, 1e-3)  # Phase bounds
             else:
-                bounds[i] = (test_gains[i] - 0.3, test_gains[i] + 0.3) # Bounds for gains
+                bounds[i] = (test_gains[i] * 0.8, test_gains[i] * 1.2) # Bounds for gains
                 bounds[i + self.nant - 1] = (-np.inf, np.inf) # Bounds for phases
 
         return bounds
@@ -541,6 +541,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Use nearly fixed gains from GPS and modify gains and phases.",
     )
+
+    parser.add_argument(
+        "--corr_only",
+        action="store_true",
+        help="Use only satellites that we can correlate against for calibration.",
+    )
+
     parser.add_argument("--dir", required=False, default=".", help="Output directory.")
     parser.add_argument(
         "--method",
@@ -732,7 +739,7 @@ if __name__ == "__main__":
 
                         [prn, strength, phase, freq] = acquisition.acquire_full(raw_data,
                                 sampling_freq=sampling_freq,
-                                center_freq=4.092e6, searchBand=6000, PRN=prn_i, debug=False)
+                                center_freq=4.092e6, searchBand=4000, PRN=prn_i, debug=False)
 
                         strengths.append(strength)
                         phases.append(phase)
@@ -800,22 +807,23 @@ if __name__ == "__main__":
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
     
-#     for m in measurements:
-#         cv, ts, src_list, prn_list, obs = m
-#         print(src_list)
-#         for s in src_list:
-#             good = False
-#             for g in good_satellites:
-# 
-#                 if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
-#                     print(np.degrees(s.el_r),g)
-#                     good = True
-#             if good == False:
-#                 print(f"Removing satellite {s}")
-#                 src_list.remove(s)
-#                 
-#         print(src_list)
-        # print(good_satellites)
+    if ARGS.corr_only:
+        for m in measurements:
+            cv, ts, src_list, prn_list, obs = m
+            print(src_list)
+            for s in src_list:
+                good = False
+                for g in good_satellites:
+
+                    if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
+                        print(np.degrees(s.el_r),g)
+                        good = True
+                if good == False:
+                    print(f"Removing satellite {s}")
+                    src_list.remove(s)
+
+            print(src_list)
+            print(good_satellites)
     
 
     if ARGS.phases:
@@ -823,22 +831,27 @@ if __name__ == "__main__":
         myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)
         myParam.rot_rad = pointing_center
         myParam.phase_offsets = phase_offsets
+        bh_stepsize = 0.1
+        bh_T = 0.2
     elif ARGS.gains_phases:
         print("Using GAINS_PHASES")
         myParam = ParamGainPhase(NANT, pointing_center, pointing_error, test_gains)
         myParam.rot_rad = pointing_center
+        myParam.gains = gains
         myParam.phase_offsets = phase_offsets
+        bh_stepsize = 0.2
+        bh_T = 0.2
     else:
         print("Using REIM")
         myParam = ParamReIm(NANT, pointing_center, pointing_error)
         myParam.rot_rad = pointing_center
         myParam.gains = gains
         myParam.phase_offsets = phase_offsets
+        bh_stepsize = 1
+        bh_T = 0.5
 
     bounds = myParam.bounds(test_gains)
 
-    #init_parameters = join_param(0.0, gains, phase_offsets)
-    #output_param(init_parameters)
     myParam.output()
 
     N_IT = 0
@@ -889,12 +902,14 @@ if __name__ == "__main__":
             "tol": 1e-3,
             "options": {"maxcor": 48},
         }
+        mytakestep = MyTakeStep(bh_stepsize, pointing_error)
+
         ret = optimize.basinhopping(
             f,
             init_parameters,
             niter=ARGS.iterations,
-            T=0.5,
-            take_step=MyTakeStep(1.0, pointing_error),
+            T=bh_T,
+            take_step=mytakestep,
             disp=True,
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
