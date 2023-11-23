@@ -2,7 +2,7 @@
 while [ 0 ]
 do
         TARGET=rhodes \
-        TART_CAL_ARGS="--get-gains --phases" \
+        TART_CAL_ARGS="--get-gains --gains-phases" \
         TART_CAL_INT=13 \
         TART_NCAL=2 \
         TART_CAL_ITERATIONS=1000 \
