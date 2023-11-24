@@ -14,7 +14,7 @@ TART_API="https://tart.elec.ac.nz/${TARGET}"
 : "${TART_CAL_POINTING_RANGE:=3}"
 : "${TART_CAL_ARGS:=""}"
 : "${TART_GET_DATA:=1}"
-: "${TART_UPLOAD:=0}"
+: "${TART_CAL_UPLOAD:=0}"
 
 DATA_DIR=./work_${TARGET}
 OUTPUT_DIR=./out_${TARGET} 
@@ -45,7 +45,7 @@ python3 raw_cal/tart_cal.py --api ${TART_API}  \
 CALIB_OUTPUT=${OUTPUT_DIR}/BH_opt_json.json
 echo "Calibration output is in ${CALIB_OUTPUT}"
 
-if [ ${TART_UPLOAD} == 1 ]; then
+if [ ${TART_CAL_UPLOAD} == 1 ]; then
     tart_upload_gains --api ${TART_API} --gains ${CALIB_OUTPUT} --pw ${TART_LOGIN_PW}
     echo "Gains Uploaded"
     tart_upload_antenna_positions --api ${TART_API} --file ${CALIB_OUTPUT} --pw ${TART_LOGIN_PW}

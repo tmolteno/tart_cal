@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 while [ 0 ]
 do
         TARGET=rhodes \
