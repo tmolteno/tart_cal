@@ -2,7 +2,15 @@
 # while [ 0 ]; do ./test.sh ; done
 #
 
-echo "Calibrating ${TARGET} pw=${TART_LOGIN_PW}"
+if [ ${TART_CAL_UPLOAD} != 1 ]; then
+    echo "########################################################"
+    echo "##                                                    ##"
+    echo "## WARNING! Calibration results will NOT BE UPLOADED  ##"
+    echo "## set TART_CAL_UPLOAD=1 to upload                    ##"
+    echo "##                                                    ##"
+    echo "########################################################"
+fi
+
 
 TART_API="https://tart.elec.ac.nz/${TARGET}"
 
@@ -16,12 +24,23 @@ TART_API="https://tart.elec.ac.nz/${TARGET}"
 : "${TART_GET_DATA:=1}"
 : "${TART_CAL_UPLOAD:=0}"
 
+echo "##"
+echo "##"
+echo "## Calibrating ${TARGET} pw=${TART_LOGIN_PW}"
+echo "## Pointing:   ${TART_CAL_POINTING} +/ ${TART_CAL_POINTING_RANGE}"
+echo "## Iterations: ${TART_CAL_ITERATIONS}"
+echo "## Elevation:  ${TART_CAL_ELEVATION}"
+echo "## Args:       ${TART_CAL_ARGS}"
+echo "##"
+echo "##"
+
+
 DATA_DIR=./work_${TARGET}
 OUTPUT_DIR=./out_${TARGET} 
 
 # 
 if [ ${TART_GET_DATA} == 1 ]; then
-    echo "Downloading Data from ${TARGET}"
+    echo "## Downloading Data from ${TART_API} ..."
 
     rm -rf ${OUTPUT_DIR}
     mkdir -p ${OUTPUT_DIR}
@@ -43,11 +62,12 @@ python3 raw_cal/tart_cal.py --api ${TART_API}  \
                             --dir ${OUTPUT_DIR}
 # 
 CALIB_OUTPUT=${OUTPUT_DIR}/BH_opt_json.json
-echo "Calibration output is in ${CALIB_OUTPUT}"
+echo "##"
+echo "## Calibration output is in ${CALIB_OUTPUT}"
 
 if [ ${TART_CAL_UPLOAD} == 1 ]; then
     tart_upload_gains --api ${TART_API} --gains ${CALIB_OUTPUT} --pw ${TART_LOGIN_PW}
-    echo "Gains Uploaded"
+    echo "## Gains Uploaded"
     tart_upload_antenna_positions --api ${TART_API} --file ${CALIB_OUTPUT} --pw ${TART_LOGIN_PW}
-    echo "Positions Uploaded"
+    echo "## Positions Uploaded"
 fi

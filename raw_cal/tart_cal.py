@@ -250,7 +250,7 @@ class ParamGainPhase(Param):
                 bounds[i] = (0, 1e-3)  # Gain bounds
                 bounds[i + self.nant - 1] = (0, 1e-3)  # Phase bounds
             else:
-                bounds_err = 0.1
+                bounds_err = 0.3
                 bounds[i] = (test_gains[i] * (1-bounds_err), test_gains[i] * 1+(bounds_err)) # Bounds for gains
                 bounds[i + self.nant - 1] = (-np.inf, np.inf) # Bounds for phases
 
@@ -868,6 +868,8 @@ if __name__ == "__main__":
         update=False,
         show=False,
     )
+    
+    print(f"Score from initial parameters = {s}")
 
     f = lambda param: calc_score(
         param,
@@ -917,6 +919,9 @@ if __name__ == "__main__":
         )
         with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
+
+    print(f"Success = {ret.success}")
+    print(f"Final Score = {ret.fun}")
 
     myParam.from_vector(ret.x)
     rot_rad = myParam.rot_rad
