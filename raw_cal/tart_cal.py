@@ -277,7 +277,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         cv.set_gain(ant_idxs, gains)
         api_imaging.rotate_vis(np.degrees(rot_rad), cv, original_positions)
 
-        n_bin = 2 ** 7
+        n_bin = 2 ** 8
         cal_ift, cal_extent, n_fft, bin_width = api_imaging.image_from_calibrated_vis(
             cv, nw=n_bin / 4, num_bin=n_bin
         )
