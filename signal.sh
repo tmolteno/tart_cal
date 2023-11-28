@@ -2,9 +2,9 @@
 while [ 0 ]
 do
         TARGET=signal \
-        TART_CAL_ARGS="--get-gains --gains-phases" \
+        TART_CAL_ARGS="--get-gains" \
         TART_GET_DATA=1 \
-        TART_NCAL=4 \
+        TART_NCAL=3 \
         TART_CAL_INT=13 \
         TART_CAL_ITERATIONS=1000 \
         TART_CAL_ELEVATION=45 \

@@ -3,7 +3,7 @@
 #
 #  Author. Tim Molteno. tim@elec.ac.nz (c) 2018-2022.
 #
-FROM debian:bullseye
+FROM debian:bookworm
 MAINTAINER Tim Molteno "tim@elec.ac.nz"
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -12,10 +12,14 @@ RUN apt-get update -y &&  apt-get install -y \
     python3-matplotlib python3-scipy \
     python3-astropy python3-healpy \
     python3-h5py python3-requests \
-    python3-pyfftw
+    python3-pyfftw python3-venv
     
 RUN apt-get clean -y
 RUN rm -rf /var/lib/apt/lists/*
+
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install tart python packages
 RUN pip3 install --no-cache-dir tart tart-tools

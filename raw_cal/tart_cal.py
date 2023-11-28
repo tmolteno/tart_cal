@@ -2,7 +2,7 @@
 """
     Calibrate the Telescope from the RESTful API
 
-    Copyright (c) Tim Molteno 2017-2022.
+    Copyright (c) Tim Molteno 2017-2023.
     
     This tool uses  high-dimensional optimisation to calculate the gains and phases of the 24 antennas
     of the telescope.
@@ -46,7 +46,7 @@ ik_index = None
 import acquisition
 
 ift_scaled = None
-#REIM = True
+
 NANT=24
 
 
@@ -544,7 +544,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--corr_only",
+        "--corr-only",
         action="store_true",
         help="Use only satellites that we can correlate against for calibration.",
     )
@@ -833,7 +833,7 @@ if __name__ == "__main__":
         myParam.rot_rad = pointing_center
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 0.1
-        bh_T = 0.2
+        bh_T = 0.3
     elif ARGS.gains_phases:
         print("Using GAINS_PHASES")
         myParam = ParamGainPhase(NANT, pointing_center, pointing_error, test_gains)
@@ -841,7 +841,7 @@ if __name__ == "__main__":
         myParam.gains = test_gains
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 0.2
-        bh_T = 0.2
+        bh_T = 0.4
     else:
         print("Using REIM")
         myParam = ParamReIm(NANT, pointing_center, pointing_error)
@@ -870,6 +870,8 @@ if __name__ == "__main__":
     )
     
     print(f"Score from initial parameters = {s}")
+    bh_T = np.abs(s/50)
+    print(f"Basinhopping T = {bh_T}")
 
     f = lambda param: calc_score(
         param,
@@ -920,7 +922,7 @@ if __name__ == "__main__":
         with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
-    print(f"Success = {ret.success}")
+    print(f"Success = {ret}")
     print(f"Final Score = {ret.fun}")
 
     myParam.from_vector(ret.x)
