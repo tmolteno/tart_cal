@@ -42,8 +42,8 @@ echo "Calibration output is in ${CAL_OUTPUT_FILE}"
 if [ ${TART_UPLOAD} == 1 ]; then
     echo "Uploading gains and antenna positions"
 
-    /usr/local/bin/tart_upload_gains --api ${TART_API} --gains ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
-    /usr/local/bin/tart_upload_antenna_positions --api ${TART_API} --file ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
+    tart_upload_gains --api ${TART_API} --gains ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
+    tart_upload_antenna_positions --api ${TART_API} --file ${CAL_OUTPUT_FILE} --pw ${TART_LOGIN_PW}
 fi
 # Clean up
 rm -r ${DIR}/*

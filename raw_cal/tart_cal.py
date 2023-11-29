@@ -343,7 +343,14 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         ret_std += -np.sqrt(sn_score)
 
         mask = masks[i]
-        masked_img = masks[i]*ift_scaled
+
+        #
+        # Clip the image at 0.5 maximum, and then calculated a score
+        # showing how much clipped power there is in the known SV regions
+        #
+        # This is an attempt to avoid bright unknown sources from skewing
+        # the phases towards it.
+        masked_img = masks[i]*np.clip(ift_scaled, a_min=0, a_max=sn_score/2)
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         #outmask_img = inv_masks[i]*ift_scaled
         #out_zone = np.median(outmask_img)
@@ -418,7 +425,7 @@ class MyTakeStep(object):
 
 
 def bh_callback(x, f, accepted):
-    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
+    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method, full_sky_mask
     #print(f"BH f={f:5.3f} accepted: {accepted}")
     if accepted:
         myParam.from_vector(x)

@@ -1,5 +1,5 @@
-TARGET=signal \
-        TART_CAL_ARGS="--get-gains --gains-phases" \
+TARGET=rhodes \
+        TART_CAL_ARGS="--get-gain" \
         TART_CAL_INT=5 \
         TART_NCAL=2 \
         TART_CAL_ITERATIONS=1000 \
