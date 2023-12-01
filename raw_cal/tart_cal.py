@@ -363,11 +363,11 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     ret_std = ret_std / len(measurements)
     ret_zone = ret_zone / len(measurements)
 
-    if N_IT % 100 == 0:
-        print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f}", end='\r')
+    # if N_IT % 100 == 0:
+    #     print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f}", end='\r')
 
     return (
-        (ret_zone + ret_std),
+        ret_zone,ret_std,
         ift_scaled,
         src_list,
         n_fft,
@@ -398,12 +398,12 @@ def calc_score(
     update=False,
     show=False,
 ):
-    global N_IT, method, output_directory, f_vs_iteration
+    global N_IT, method, output_directory, f_vs_iteration, ret_zone, ret_std
 
-    ret, ift_scaled, src_list, n_fft, bin_width, mask = calc_score_aux(
+    ret_zone, ret_std, ift_scaled, src_list, n_fft, bin_width, mask = calc_score_aux(
         opt_parameters, measurements, window_deg, original_positions
     )
-
+    ret = ret_zone + ret_std
     if N_IT % 1000 == 0:
         #print(f"Iteration {N_IT}, score={ret:04.2f}")
         f_vs_iteration.append(ret)
@@ -425,9 +425,10 @@ class MyTakeStep(object):
 
 
 def bh_callback(x, f, accepted):
-    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method, full_sky_mask
+    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method, full_sky_mask, ret_zone, ret_std, in_zone
     #print(f"BH f={f:5.3f} accepted: {accepted}")
     if accepted:
+        print(f"   S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
         myParam.from_vector(x)
         myParam.output()
         bh_basin_progress.append([N_IT, f])
