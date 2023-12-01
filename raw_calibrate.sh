@@ -31,7 +31,11 @@ echo "Data directory: ${DATA_DIR}"
 python3 /app/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 
 # Perform optimization
-python3 /app/tart_cal.py --api ${TART_API} ${TART_CAL_ARGS} --elevation ${TART_CAL_ELEVATION} --iterations ${TART_CAL_ITERATIONS} --pointing ${TART_CAL_POINTING} --data ${DATA_DIR}  --dir ${OUTPUT_DIR}
+python3 /app/tart_cal.py --api ${TART_API} ${TART_CAL_ARGS} \
+            --elevation ${TART_CAL_ELEVATION} --iterations ${TART_CAL_ITERATIONS} \
+            --pointing-range ${TART_CAL_POINTING_RANGE} \
+            --pointing ${TART_CAL_POINTING} \
+            --data ${DATA_DIR}  --dir ${OUTPUT_DIR}
 
 # Log outputs
 CAL_OUTPUT_FILE=${WORKING_DIR}/cal_${DATESTR}.json

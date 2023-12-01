@@ -1,4 +1,4 @@
-## Dockerfile for Telescope Calibration
+## TART Telescope Calibration Software
 
 Author: Tim Molteno
 

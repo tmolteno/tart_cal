@@ -5,13 +5,16 @@ services:
     # image: ghcr.io/tmolteno/tart_cal
     build: .                                # Path to Dockerfile
     environment:
+      TZ : "Africa/Johannesburg"
       PYTHONUNBUFFERED: 1
       TART_LOGIN_PW: sharkbait                    # Password for authorized access to the telescope API.
       TARGET: rhodes
-      TART_NCAL: 2                                # use 1 for debugging only
+      TART_NCAL: 3                                # use 1 for debugging only
       TART_CAL_INT: 12                            # Interval between measurements
       TART_CAL_ELEVATION: 45                      # Elevation of satellites to use
-      TART_CAL_ARGS: "--cold-start --corr-only"    # Specify any other arguments --phases
+      TART_CAL_POINTING_RANGE: 3.0
+      TART_CAL_POINTING: 0.0
+      TART_CAL_ARGS: "--corr-only"    # Specify any other arguments --phases --cold-start --corr-only
       TART_CAL_ITERATIONS: 1000                   # Number of iterations for basinhopping
       TART_UPLOAD: 1                              # Set to 1 to upload results
     volumes:

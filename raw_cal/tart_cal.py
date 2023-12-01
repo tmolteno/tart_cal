@@ -877,7 +877,7 @@ if __name__ == "__main__":
     )
     
     print(f"Score from initial parameters = {s}")
-    bh_T = np.abs(s/50)
+    bh_T = np.abs(s/30)
     print(f"Basinhopping T = {bh_T}")
 
     f = lambda param: calc_score(
