@@ -7,7 +7,6 @@ services:
     environment:
       TZ : "Africa/Johannesburg"
       PYTHONUNBUFFERED: 1
-      TART_LOGIN_PW: sharkbait                    # Password for authorized access to the telescope API.
       TARGET: rhodes
       TART_NCAL: 1                                # use 1 for debugging only
       TART_CAL_INT: 12                            # Interval between measurements
