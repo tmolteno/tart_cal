@@ -6,6 +6,7 @@ services:
     build: .                                # Path to Dockerfile
     environment:
       TZ : "Africa/Johannesburg"
+      TART_LOGIN_PW: ${TART_LOGIN_PW}
       PYTHONUNBUFFERED: 1
       TARGET: rhodes
       TART_NCAL: 1                                # use 1 for debugging only
