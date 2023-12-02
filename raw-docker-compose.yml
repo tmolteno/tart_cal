@@ -11,12 +11,12 @@ services:
       TARGET: rhodes
       TART_NCAL: 2                                # use 1 for debugging only
       TART_CAL_INT: 12                            # Interval between measurements
-      TART_CAL_ELEVATION: 45                      # Elevation of satellites to use
+      TART_CAL_ELEVATION: 50                      # Elevation of satellites to use
       TART_CAL_POINTING_RANGE: 3.0
       TART_CAL_POINTING: 0.0
-      TART_CAL_ARGS: "--get-gains --corr-only"    # Specify any other arguments --phases --cold-start --corr-only
+      TART_CAL_ARGS: "--get-gains --corr-only --window-deg 3.0"    # Specify any other arguments --phases --cold-start --corr-only
       TART_CAL_ITERATIONS: 700                   # Number of iterations for basinhopping
-      TART_UPLOAD: 1                              # Set to 1 to upload results
+      TART_UPLOAD: 1                             # Set to 1 to upload results
     volumes:
       - ~/calibration_results:/work
     command: /raw_calibrate.sh

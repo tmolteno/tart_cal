@@ -5,6 +5,6 @@ authors:
   given-names: "Timothy C.A."
   orcid: "https://orcid.org/0000-0002-2022-0380"
 title: "TART Telescope Calibration Software"
-version: 0.9.5
+version: 0.4.4
 date-released: 2023-12-1
 url: "https://github.com/tmolteno/tart_cal"

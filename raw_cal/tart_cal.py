@@ -590,7 +590,7 @@ if __name__ == "__main__":
         "--pointing-range", type=float, default=3.0, help="Pointing search range (degrees)")
 
     parser.add_argument(
-        "--max-delay", type=float, default=1, help="Maximum delay in wavelengths")
+        "--window-deg", type=float, default=5.0, help="Window for masks size in degrees")
 
     parser.add_argument(
         '--ignore', nargs='+', type=int, default=[], help="Specify the list of antennas to zero out.")
@@ -865,7 +865,7 @@ if __name__ == "__main__":
     myParam.output()
 
     N_IT = 0
-    window_deg = 8.0
+    window_deg = ARGS.window_deg
 
     s = calc_score(
         myParam.to_vector(),
@@ -878,7 +878,7 @@ if __name__ == "__main__":
     )
     
     print(f"Score from initial parameters = {s}")
-    bh_T = np.abs(s/30)
+    bh_T = np.abs(s/40)
     print(f"Basinhopping T = {bh_T}")
 
     f = lambda param: calc_score(
