@@ -10,18 +10,6 @@ spec:
         spec:
           containers:
           - env:
-            # - name: http_proxy
-            #   value: "http://iaa-proxy.uod.otago.ac.nz:3128"
-            # - name: HTTP_PROXY
-            #   value: "http://iaa-proxy.uod.otago.ac.nz:3128"
-            # - name: https_proxy
-            #   value: "http://iaa-proxy.uod.otago.ac.nz:3128"
-            # - name: HTTPS_PROXY
-            #   value: "http://iaa-proxy.uod.otago.ac.nz:3128"
-            # - name: no_proxy
-            #   value: 'localhost,*.otago.ac.nz'
-            # - name: NO_PROXY
-            #   value: 'localhost,*.otago.ac.nz'
             - name: TART_API
               value: https://tart.elec.ac.nz/signal/
             - name: TARGET
@@ -31,7 +19,7 @@ spec:
             - name: TART_CAL_ARGS
               value: "--phases"
             - name: TART_LOGIN_PW
-              value: sharkbait
+              value: <change this>
             - name: TART_NCAL
               value: "3"
             - name: TART_UPLOAD
