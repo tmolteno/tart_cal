@@ -840,8 +840,8 @@ if __name__ == "__main__":
         myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)
         myParam.rot_rad = pointing_center
         myParam.phase_offsets = phase_offsets
-        bh_stepsize = 0.1
-        bh_T = 0.3
+        bh_stepsize = 1
+        bh_T = 1.0
     elif ARGS.gains_phases:
         print("Using GAINS_PHASES")
         myParam = ParamGainPhase(NANT, pointing_center, pointing_error, test_gains)
@@ -878,8 +878,8 @@ if __name__ == "__main__":
     )
     
     print(f"Score from initial parameters = {s}")
-    bh_T = np.abs(s/40)
-    print(f"Basinhopping T = {bh_T}")
+    # bh_T = np.abs(s/40)
+    # print(f"Basinhopping T = {bh_T}")
 
     f = lambda param: calc_score(
         param,
