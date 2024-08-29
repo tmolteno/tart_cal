@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   calibration:
@@ -8,13 +7,13 @@ services:
       TZ : "Africa/Johannesburg"
       TART_LOGIN_PW: ${TART_LOGIN_PW}
       PYTHONUNBUFFERED: 1
-      TARGET: rhodes
+      TARGET: za-rhodes
       TART_NCAL: 2                                # use 1 for debugging only
-      TART_CAL_INT: 12                            # Interval between measurements
+      TART_CAL_INT:  15                           # Interval between measurements
       TART_CAL_ELEVATION: 50                      # Elevation of satellites to use
-      TART_CAL_POINTING_RANGE: 3.0
+      TART_CAL_POINTING_RANGE: 4.0
       TART_CAL_POINTING: 0.0
-      TART_CAL_ARGS: "--get-gains --corr-only --window-deg 3.0"    # Specify any other arguments --phases --cold-start --corr-only
+      TART_CAL_ARGS: "--get-gains --gains-phases --window-deg 2.0"    # Specify any other arguments --phases --cold-start --corr-only
       TART_CAL_ITERATIONS: 700                   # Number of iterations for basinhopping
       TART_UPLOAD: 1                             # Set to 1 to upload results
     volumes:

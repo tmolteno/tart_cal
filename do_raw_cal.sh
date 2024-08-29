@@ -12,7 +12,7 @@ if [ ${TART_CAL_UPLOAD} != 1 ]; then
 fi
 
 
-TART_API="https://tart.elec.ac.nz/${TARGET}"
+TART_API="https://api.elec.ac.nz/tart/${TARGET}"
 
 : "${TART_CAL_ITERATIONS:=500}"
 : "${TART_CAL_ELEVATION:=45}"

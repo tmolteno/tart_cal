@@ -12,7 +12,7 @@ DATESTR=`date "+%Y_%m_%d_%H_%M_%S"`
 DIR=${WORKING_DIR}/calibration_${DATESTR}
 mkdir -p ${DIR}
 
-TART_API=https://tart.elec.ac.nz/${TARGET}
+TART_API=https://api.elec.ac.nz/tart/${TARGET}
 DATA_DIR=${DIR}/cal_data_${TARGET}
 OUTPUT_DIR=${DIR}/cal_out_${TARGET}
 CALIB_OUTPUT=${OUTPUT_DIR}/${TART_CAL_METHOD}_opt_json.json

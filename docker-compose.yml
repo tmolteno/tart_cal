@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   calibration:
@@ -7,11 +6,11 @@ services:
       TART_LOGIN_PW: sharkbait # used for pushing new gains to API. Match to set in the telescope API.
       TARGET: rhodes   # telescope API endpoint
       TART_NCAL: 7                          # use 1 for debugging only
+      TART_CAL_INT: 7                            # Interval between measurements
       TART_CAL_ITERATIONS: 700
       TART_CAL_ELEVATION: 45
       TART_CAL_POINTING: 0
       TART_CAL_ARGS : "" 
-      TART_CAL_INT: 7                            # Interval between measurements
       TART_UPLOAD: 1                            # Do the upload
     volumes:
       - ./calibration_results:/work
