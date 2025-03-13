@@ -73,7 +73,6 @@ class Param:
         }
         return ret
 
-
     def output(self, fp=None):
         ret = self.to_json()
         if fp is None:
@@ -137,7 +136,7 @@ class ParamReIm(Param):
         pnt = self.pointing_error*stepsize
 
         bounded_step = stepsize*np.ones(self.nant-1)*self.blim
-        
+
         rot_step = np.random.uniform(-pnt, pnt)
         re_step = np.random.uniform(-bounded_step, bounded_step)   # Re
         im_step = np.random.uniform(-bounded_step, bounded_step)   # Im
@@ -145,6 +144,7 @@ class ParamReIm(Param):
         ret = x + np.concatenate(([rot_step], re_step, im_step))
 
         return ret
+
 
 class ParamPhase(Param):
 
@@ -196,6 +196,7 @@ class ParamPhase(Param):
                 # bounds[i] = (-np.inf, np.inf) # Bounds for phases
 
         return bounds
+
 
 class ParamGainPhase(Param):
 
@@ -258,7 +259,7 @@ class ParamGainPhase(Param):
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
     global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam, mask_sums, full_sky_mask
-    
+
 
     myParam.from_vector(opt_parameters)
     rot_rad = myParam.rot_rad
@@ -431,7 +432,7 @@ def bh_callback(x, f, accepted):
         print(f"   S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
         myParam.from_vector(x)
         myParam.output()
-        bh_basin_progress.append([N_IT, f])
+        bh_basin_progress.append([N_IT, float(f)])
         with open(f"{output_directory}/bh_basin_progress.json", "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 

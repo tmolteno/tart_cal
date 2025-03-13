@@ -142,10 +142,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     )
 
 
-def load_data_from_json(
-    vis_json, src_json, config, gains, phases, flag_list, el_threshold
-):
-
+def load_data_from_json(vis_json, src_json,
+                        config, gains, phases, flag_list,
+                        el_threshold):
     cv, ts = api_imaging.vis_calibrated(vis_json, config, gains, phases, flag_list)
     src_list = elaz.from_json(src_json, el_threshold)
     return cv, ts, src_list
@@ -313,7 +312,7 @@ if __name__ == "__main__":
         help="Number of iterations for basinhopping",
     )
     parser.add_argument(
-        "--elevation", type=float, default=30.0, help="Elevation threshold for sources]"
+        "--elevation", type=float, default=40.0, help="Elevation threshold for sources]"
     )
 
     parser.add_argument(
