@@ -400,7 +400,7 @@ if __name__ == "__main__":
         show=False,
     )
 
-    bounds = [(-5, 5)]  # Bounds for the rotation parameter
+    bounds = [(-3, 3)]  # Bounds for the rotation parameter
     for i in range(46):
         bounds.append((-1.2, 1.2))
         # Bounds for all other parameters (real and imaginary components)
@@ -434,8 +434,8 @@ if __name__ == "__main__":
             f,
             init_parameters,
             niter=ARGS.iterations,
-            T=0.5,
-            stepsize=2.0,
+            T=0.4,
+            stepsize=0.5,
             disp=True,
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
