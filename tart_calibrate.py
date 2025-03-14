@@ -2,31 +2,25 @@
 """
     Calibrate the Telescope from the RESTful API
 
-    Copyright (c) Tim Molteno 2017-2022.
+    Copyright (c) Tim Molteno 2017-2025.
 
     This tool uses  high-dimensional optimisation to calculate the gains and phases of the 24 antennas
     of the telescope.
 """
-import matplotlib
-
-matplotlib.use("agg")
+# import matplotlib
+# matplotlib.use("agg")
 import matplotlib.pyplot as plt
 
 import argparse
-import numpy as np
-import time
+import json
 
+import numpy as np
+
+from scipy import optimize
 from copy import deepcopy
 
-import itertools
-
 from tart.operation import settings
-from tart.imaging import visibility
-from tart.imaging import calibration
-from tart.imaging import synthesis
 from tart.imaging import elaz
-
-from tart.util.angle import from_rad
 
 from tart_tools import api_imaging
 from tart_tools import api_handler
@@ -90,9 +84,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         api_imaging.rotate_vis(rot_degrees, cv, original_positions)
 
         n_bin = 2 ** 7
-        cal_ift, cal_extent, n_fft, bin_width = api_imaging.image_from_calibrated_vis(
-            cv, nw=n_bin / 4, num_bin=n_bin
-        )
+        cal_ift, cal_extent, n_fft, bin_width = \
+            api_imaging.image_from_calibrated_vis(
+                cv, nw=n_bin / 4, num_bin=n_bin)
 
         abs_ift = np.abs(cal_ift)
         ift_std = np.std(abs_ift)
@@ -145,7 +139,8 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 def load_data_from_json(vis_json, src_json,
                         config, gains, phases, flag_list,
                         el_threshold):
-    cv, ts = api_imaging.vis_calibrated(vis_json, config, gains, phases, flag_list)
+    cv, ts = api_imaging.vis_calibrated(vis_json, config,
+                                        gains, phases, flag_list)
     src_list = elaz.from_json(src_json, el_threshold)
     return cv, ts, src_list
 
@@ -178,13 +173,6 @@ def calc_score(
         f_vs_iteration.append(ret)
 
     if N_IT % 1000 == 0:
-
-        #ift_sel = np.zeros_like(ift_scaled)
-
-        #for s in src_list:
-            #x_min, x_max, y_min, y_max, area = s.get_px_window(n_fft, window_deg)
-            #ift_sel[y_min:y_max, x_min:x_max] = ift_scaled[y_min:y_max, x_min:x_max]
-
         ift_sel = ift_scaled*mask
         x_list, y_list = elaz.get_source_coordinates(src_list)
 
@@ -228,10 +216,6 @@ def calc_score(
     return ret
 
 
-from scipy import optimize
-import json
-
-
 class MyTakeStep(object):
     def __init__(self, stepsize=0.5):
         self.stepsize = stepsize
@@ -249,12 +233,12 @@ def bh_callback(x, f, accepted):
     if accepted:
         output_param(x)
         bh_basin_progress.append([N_IT, float(f)])
-        with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
+        fname = f"{output_directory}/bh_basin_progress.json"
+        with open(fname, "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
-        with open(
-            "{}/BH_basin_{:5.3f}_{}.json".format(output_directory, float(f), N_IT), "w"
-        ) as fp:
+        fname = f"{output_directory}/BH_basin_{float(f):5.3f}_{N_IT}.json"
+        with open(fname, "w") as fp:
             output_param(x, fp)
 
 
@@ -389,6 +373,7 @@ if __name__ == "__main__":
         update=False,
         show=False,
     )
+    print(f"Score from initial parameters = {s}")
 
     f = lambda param: calc_score(
         param,

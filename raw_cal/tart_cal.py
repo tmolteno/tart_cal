@@ -109,7 +109,7 @@ class ParamReIm(Param):
         return ret
 
     def bounds(self, test_gains):
-        
+
         bounds = np.empty(self.nend, dtype=(float,2))
 
         self.blim = np.zeros(self.nant-1)
@@ -119,12 +119,12 @@ class ParamReIm(Param):
         bounds[self.re_indices] = (-2,2)
         bounds[self.im_indices] = (-2,2)
 
-        for i in range(1,self.nant):
+        for i in range(1, self.nant):
             tg = test_gains[i]
             if tg < 0.01:
                 blim = 0
             else:
-                blim = 2 # tg * 1.2
+                blim = 2  # tg * 1.2
 
             bounds[i] = (-blim, blim)
             bounds[i + self.nant-1] = (-blim, blim)
@@ -152,9 +152,9 @@ class ParamPhase(Param):
         super().__init__(nant, pointing_center, pointing_error)
         self.gains = gains
         self.nend = nant
-        self.free_antennas=slice(1, self.nant)
+        self.free_antennas = slice(1, self.nant)
         # self.phase_indices=slice(1, self.nant)
-        self.phase_indices=slice(1, self.nant)
+        self.phase_indices = slice(1, self.nant)
         self.phase_offsets = np.zeros_like(self.gains)
 
     def take_step(self, x, stepsize):
@@ -165,12 +165,12 @@ class ParamPhase(Param):
         phase_step = stepsize * 2*np.pi
 
         rot_step = np.random.normal(0, pnt)
-        phase_steps  = np.random.normal(0, phase_step, self.nant-1)
+        phase_steps = np.random.normal(0, phase_step, self.nant-1)
 
         new_rot = x[0] + rot_step
         new_phase = x[self.phase_indices] + phase_steps
-        new_phase[new_phase<-np.pi] += 2*np.pi
-        new_phase[new_phase>np.pi] -= 2*np.pi
+        new_phase[new_phase < -np.pi] += 2*np.pi
+        new_phase[new_phase > np.pi] -= 2*np.pi
         ret = np.concatenate(([new_rot], new_phase))
         return ret
 
@@ -187,13 +187,13 @@ class ParamPhase(Param):
     def bounds(self, test_gains):
         bounds = [0] * self.nend
         bounds[0] = self.pointing_bounds()
-        for i in range(1,self.nant):
+        for i in range(1, self.nant):
             tg = test_gains[i]
             if tg < 0.01:
                 bounds[i] = (0, 0)
             else:
-                bounds[i] = (-np.pi*2, np.pi*2) # Bounds for phases
-                # bounds[i] = (-np.inf, np.inf) # Bounds for phases
+                bounds[i] = (-np.pi*2, np.pi*2)  # Bounds for phases
+                # bounds[i] = (-np.inf, np.inf)  # Bounds for phases
 
         return bounds
 
@@ -257,9 +257,9 @@ class ParamGainPhase(Param):
 
         return bounds
 
+
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
     global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam, mask_sums, full_sky_mask
-
 
     myParam.from_vector(opt_parameters)
     rot_rad = myParam.rot_rad
@@ -288,7 +288,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         ift_scaled = abs_ift / ift_std
 
         if full_sky_mask is None:
-            x0,y0 = n_fft // 2, n_fft // 2
+            x0, y0 = n_fft // 2, n_fft // 2
             d = (n_fft // 3)**2
             full_sky_mask = np.zeros_like(ift_scaled)
             for y in range(full_sky_mask.shape[0]):
@@ -298,14 +298,13 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                     if p > 0.2:
                         p = 1
                     full_sky_mask[y, x] = p
-        
-        
+
         if masks[i] is None:
             print("Creating mask")
             mask = np.zeros_like(ift_scaled)
 
             for s in src_list:
-                x0,y0 = s.get_px(n_fft)
+                x0, y0 = s.get_px(n_fft)
                 d = s.deg_to_pix(n_fft, window_deg)
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
@@ -320,10 +319,10 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             inv_masks[i] = negative_mask
 
-            #mask[mask>0.4] = 1
+            # mask[mask>0.4] = 1
             masks[i] = mask
             mask_sums[i] = np.sum(mask)
-            
+
             plt.figure()
             plt.imshow(
                 mask,
@@ -357,8 +356,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         #out_zone = np.median(outmask_img)
 
         zone_score = (in_zone)**3
-        
-        
+
         ret_zone += -zone_score
 
     ret_std = ret_std / len(measurements)
@@ -368,14 +366,13 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     #     print(f"S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}, in: {in_zone:04.2f}", end='\r')
 
     return (
-        ret_zone,ret_std,
+        ret_zone, ret_std,
         ift_scaled,
         src_list,
         n_fft,
         bin_width,
         mask,
     )
-
 
 
 def load_data_from_json(
@@ -387,7 +384,6 @@ def load_data_from_json(
     logger.info(f"    ts = {ts}")
     src_list = elaz.from_json(src_json, el_threshold)
     return cv, ts, src_list
-
 
 
 def calc_score(
@@ -406,7 +402,7 @@ def calc_score(
     )
     ret = ret_zone + ret_std
     if N_IT % 1000 == 0:
-        #print(f"Iteration {N_IT}, score={ret:04.2f}")
+        # print(f"Iteration {N_IT}, score={ret:04.2f}")
         f_vs_iteration.append(ret)
 
     N_IT += 1
@@ -493,15 +489,15 @@ def bh_callback(x, f, accepted):
         plt.close()
 
 
-
 def de_callback(xk, convergence):
     print("DE at {} conv={}".format(xk, convergence))
     output_param(xk)
 
+
 import glob
 
 if __name__ == "__main__":
-    
+
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
@@ -531,7 +527,7 @@ if __name__ == "__main__":
         default="cal_data",
         help="Calibration Input Data Directory.",
     )
-    
+
     parser.add_argument("--show", action="store_true", help="show instead of save.")
     parser.add_argument(
         "--cold-start", action="store_true", help="Start from zero knowledge of gains."
@@ -583,10 +579,10 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--elevation", type=float, default=30.0, help="Elevation threshold for sources")
-    
+
     parser.add_argument(
         "--pointing", type=float, default=0.0, help="Initial estimate of pointing offset (degrees)")
-    
+
     parser.add_argument(
         "--pointing-range", type=float, default=3.0, help="Pointing search range (degrees)")
 
@@ -595,7 +591,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         '--ignore', nargs='+', type=int, default=[], help="Specify the list of antennas to zero out.")
-
 
     ARGS = parser.parse_args()
 
@@ -608,11 +603,11 @@ if __name__ == "__main__":
     print(json_files)
     with open(json_files[0], "r") as json_file:
         calib_info = json.load(json_file)
-        
+
     info = calib_info["info"]
     ant_pos = calib_info["ant_pos"]
     config = settings.from_api_json(info["info"], ant_pos)
-    
+
     flag_list = ARGS.ignore
     logger.info(f"Flagging {flag_list}")
 
@@ -624,11 +619,11 @@ if __name__ == "__main__":
     original_positions = deepcopy(config.get_antenna_positions())
 
     gains_json = calib_info["gains"]
-    
+
     g_json = gains_json["gain"]
     logger.info(f"Gains JSON: {g_json}")
     gains = np.asarray(g_json)
-    
+
     phase_offsets = np.asarray(gains_json["phase_offset"])
     logger.info(f"Gains {gains}")
     logger.info(f"Phases {phase_offsets}")
@@ -651,7 +646,7 @@ if __name__ == "__main__":
     raw_obs = []
     for raw_file in raw_files:
         raw_obs.append(observation.Observation_Load(raw_file))
-    
+
     masks = []
     full_sky_mask = None
     mask_sums = []
@@ -693,10 +688,10 @@ if __name__ == "__main__":
             if dt < best_dt:
                 best_dt = dt
                 obs = o
-        
+
         if (best_dt > 100):
             raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
-        
+
         corr = correlator.Correlator()
         vis = corr.correlate(obs)
         logger.info(f"Timestamp: {vis.timestamp}")
@@ -712,14 +707,13 @@ if __name__ == "__main__":
 
     # Acquisition to get expected list of SV's
 
-
     try:
         with open(f"{data_dir}/gps_acquisition.json", "r") as fp:
             full_acquisition_data = json.load(fp)
             calculate = False
     except:
         calculate = True
-        
+
     if calculate:
         full_acquisition_data = []
         for m in measurements:
@@ -747,9 +741,11 @@ if __name__ == "__main__":
                         num_samples_per_ms = sampling_freq // 1000
                         num_samples = int(2*num_samples_per_ms)
 
-                        [prn, strength, phase, freq] = acquisition.acquire_full(raw_data,
-                                sampling_freq=sampling_freq,
-                                center_freq=4.092e6, searchBand=4000, PRN=prn_i, debug=False)
+                        [prn, strength, phase, freq] = acquisition.acquire_full(
+                            raw_data,
+                            sampling_freq=sampling_freq,
+                            center_freq=4.092e6, searchBand=4000, PRN=prn_i,
+                            debug=False)
 
                         strengths.append(strength)
                         phases.append(phase)
@@ -774,9 +770,9 @@ if __name__ == "__main__":
     sv_noise = np.zeros(NANT) + 0
     n = 0
     best_score = -999
-    
+
     good_satellites = []
-    
+
     for acquisition_data in full_acquisition_data:
         for d in acquisition_data:
             acq = acquisition_data[d]
@@ -784,17 +780,17 @@ if __name__ == "__main__":
             st = np.array(acq['strengths'])
 
             sv = acq['sv']
-            
+
             if sv['el'] < 15:
                 sv_noise += st
-                
+
             if sv['el'] > ARGS.elevation:
                 mean_str = np.median(st)
                 if (mean_str > 7.0):
                     good_satellites.append(sv)
-                    
+
                     good = np.where(st > 7.0)
-                
+
                     best_acq[good] += st[good]
                     n = n + 1
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
@@ -808,15 +804,15 @@ if __name__ == "__main__":
     print(f"Best acw {best_acq}")
     print(f"Noise level {s_n}")
     test_gains = best_acq / best_acq[0]
-    test_gains = 1.0 / (test_gains) # These factors would make all SV appear equal brightness.
+    test_gains = 1.0 / (test_gains)
+    # These factors would make all SV appear equal brightness.
     # test_gains = np.ones(NANT)
     test_gains[best_acq < 0.1] = 0
     print(f"Estimated gains: {test_gains}")
 
-
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
-    
+
     if ARGS.corr_only:
         for m in measurements:
             cv, ts, src_list, prn_list, obs = m
@@ -828,13 +824,12 @@ if __name__ == "__main__":
                     if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
                         print(np.degrees(s.el_r),g)
                         good = True
-                if good == False:
+                if good is False:
                     print(f"Removing satellite {s}")
                     src_list.remove(s)
 
             print(src_list)
             print(good_satellites)
-    
 
     if ARGS.phases:
         print("Using PHASES")
@@ -843,14 +838,17 @@ if __name__ == "__main__":
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 1
         bh_T = 1.0
+
     elif ARGS.gains_phases:
         print("Using GAINS_PHASES")
-        myParam = ParamGainPhase(NANT, pointing_center, pointing_error, test_gains)
+        myParam = ParamGainPhase(NANT, pointing_center,
+                                 pointing_error, test_gains)
         myParam.rot_rad = pointing_center
         myParam.gains = test_gains
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 0.2
         bh_T = 0.4
+
     else:
         print("Using REIM")
         myParam = ParamReIm(NANT, pointing_center, pointing_error)
@@ -877,7 +875,7 @@ if __name__ == "__main__":
         update=False,
         show=False,
     )
-    
+
     print(f"Score from initial parameters = {s}")
     # bh_T = np.abs(s/40)
     # print(f"Basinhopping T = {bh_T}")
@@ -891,9 +889,6 @@ if __name__ == "__main__":
         update=False,
         show=False,
     )
-
-
-
 
     init_parameters = myParam.to_vector()
 
