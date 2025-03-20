@@ -133,8 +133,7 @@ if __name__ == "__main__":
     )
     PARSER.add_argument(
         "--api",
-        required=False,
-        default="https://tart.elec.ac.nz/signal",
+        required=True,
         help="Telescope API server URL.",
     )
     PARSER.add_argument(

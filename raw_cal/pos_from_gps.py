@@ -13,6 +13,7 @@ from tart_tools import api_imaging
 
 from acquisition import acquire
 
+
 def load_data_from_json(vis_json,
                         src_json, 
                         config, gains,
@@ -23,19 +24,19 @@ def load_data_from_json(vis_json,
     return cv, ts, src_list
 
 
-def load_raw_files(raw_files, calib_info):
-
+def load_raw_files(raw_files, calib_info, config):
+    global ARGS
     # Load the raw observations
     raw_obs = []
     for raw_file in raw_files:
         raw_obs.append(observation.Observation_Load(raw_file))
-    
+
     n = config.get_num_antenna()
 
     gains = np.ones(n)
     phase_offsets = np.zeros(n)
     flag_list = []
-    
+
     masks = []
     full_sky_mask = None
     mask_sums = []
@@ -151,6 +152,7 @@ def get_pseudoranges(measurements, fname):
         with open(fname, "w") as fp:
             json.dump(full_acquisition_data, fp, indent=4, separators=(",", ": "))
 
+
 def find_vis_satellites(fname, elevation):
 
     with open(fname, "r") as fp:
@@ -158,10 +160,10 @@ def find_vis_satellites(fname, elevation):
 
     # Use the standard deviation of the phases to determine whether the SV is visible.
     print("Finding visible satellites")
-    
+
     antennas = full_acquisition_data['antennas']
     nant = len(antennas)
-    best_acq = np.zeros(nant)
+    best_acq = np.zeros(nant)  # Keep track of number of sv's visible
     n = 0
     best_score = -999
     
@@ -176,13 +178,12 @@ def find_vis_satellites(fname, elevation):
 
             sv = acq['sv']
 
-
             mean_str = np.median(st)
             med_ph = np.median(ph)
             good = np.where((st > 7.5))
-            
+
             best_acq[good] += 1
-            
+
             eqn = {}
             eqn['sv'] = sv
             eqn['cond'] = []
@@ -200,7 +201,7 @@ def find_vis_satellites(fname, elevation):
     return equations
 
 
-if __name__ == "__main__":
+def main():
     import argparse
     parser = argparse.ArgumentParser(
         description="Locate positions of the tart telescope from SV data.",
@@ -257,7 +258,7 @@ if __name__ == "__main__":
     ant_pos = calib_info["ant_pos"]
     config = settings.from_api_json(info["info"], ant_pos)
 
-    measurements = load_raw_files(raw_files, calib_info)
+    measurements = load_raw_files(raw_files, calib_info, config)
     
     fname = f"{data_dir}/gps_acquisition.json"
 
@@ -276,7 +277,7 @@ if __name__ == "__main__":
             
     zero_antenna = np.argmax(eqn['best'])
     print(f"Zero Antenna: {zero_antenna}")
-    
+
     ## Build matrix
     for sveqn in eqn['sv']:
         sv = sveqn['sv']
@@ -297,7 +298,11 @@ if __name__ == "__main__":
             if (c['antenna'] != zero_antenna):
                 dph = c['codephase'] - zero_phase
                 weight = c['correlation']*zero_str
-                phase_to_meters = 300000
+                phase_to_meters = 300000  # distance light travels in one ms
                 dx = dph*np.cos(el)*np.sin(az)*phase_to_meters
                 dy = dph*np.cos(el)*np.cos(az)*phase_to_meters
                 print(f"     d[{zero_antenna},{c['antenna']}] {dph}, {dx},{dy} {weight}")
+
+
+if __name__ == "__main__":
+    main()
