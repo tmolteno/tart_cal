@@ -2,9 +2,10 @@
 """
     Calibrate the Telescope from the RESTful API
 
-    Copyright (c) Tim Molteno 2017-2023.
-    
-    This tool uses  high-dimensional optimisation to calculate the gains and phases of the 24 antennas
+    Copyright (c) Tim Molteno 2017-2025.
+
+    This tool uses  high-dimensional optimisation to calculate the gains and
+    phases of the 24 antennas
     of the telescope.
 """
 import matplotlib
@@ -587,9 +588,6 @@ if __name__ == "__main__":
         "--pointing-range", type=float, default=3.0, help="Pointing search range (degrees)")
 
     parser.add_argument(
-        "--window-deg", type=float, default=5.0, help="Window for masks size in degrees")
-
-    parser.add_argument(
         '--ignore', nargs='+', type=int, default=[], help="Specify the list of antennas to zero out.")
 
     ARGS = parser.parse_args()
@@ -747,7 +745,7 @@ if __name__ == "__main__":
                             center_freq=4.092e6, searchBand=4000, PRN=prn_i,
                             debug=False)
 
-                        strengths.append(strength)
+                        strengths.append(float(np.round(strength, 3)))
                         phases.append(phase)
                         freqs.append(freq)
 
@@ -755,7 +753,6 @@ if __name__ == "__main__":
                     acquisition_data[f"{prn_i}"]['phases'] = phases
                     acquisition_data[f"{prn_i}"]['freqs'] = freqs
                     acquisition_data[f"{prn_i}"]['sv'] = sv
-
 
                     print(acquisition_data[f"{prn_i}"])
             full_acquisition_data.append(acquisition_data)
@@ -822,7 +819,7 @@ if __name__ == "__main__":
                 for g in good_satellites:
 
                     if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
-                        print(np.degrees(s.el_r),g)
+                        print(np.degrees(s.el_r), g)
                         good = True
                 if good is False:
                     print(f"Removing satellite {s}")
@@ -864,7 +861,20 @@ if __name__ == "__main__":
     myParam.output()
 
     N_IT = 0
-    window_deg = ARGS.window_deg
+
+    # Rayleigh criterion 1.2 lambda / d_max
+    blmax = 0
+    ant_pos_arr = np.array(ant_pos)
+    n_ant = ant_pos_arr.shape[0]
+    for i in range(n_ant):
+        for j in range(n_ant):
+            dr = ant_pos_arr[i] - ant_pos_arr[j]
+            r = np.sqrt(dr[0]*dr[0] + dr[1]*dr[1])
+            if r > blmax:
+                blmax = r
+
+    window_deg = np.degrees(1.2*0.2/blmax)
+    print(f"window_deg: {window_deg}")
 
     s = calc_score(
         myParam.to_vector(),
@@ -903,7 +913,7 @@ if __name__ == "__main__":
     if method == "DE":
         ret = optimize.differential_evolution(f, bounds, disp=True)
     if method == "BH":
-        bh_basin_progress = [[0, s]]
+        bh_basin_progress = [[0, float(s)]]
         minimizer_kwargs = {
             "method": "L-BFGS-B",
             "jac": False,

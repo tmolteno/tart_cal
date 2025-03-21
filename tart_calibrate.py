@@ -362,7 +362,21 @@ if __name__ == "__main__":
         masks.append(None)
 
     N_IT = 0
-    window_deg = 5.0
+
+    # Rayleigh criterion 1.2 lambda / d_max
+    blmax = 0
+    ant_pos_arr = np.array(ant_pos)
+    n_ant = ant_pos_arr.shape[0]
+    for i in range(n_ant):
+        for j in range(n_ant):
+            dr = ant_pos_arr[i] - ant_pos_arr[j]
+            r = np.sqrt(dr[0]*dr[0] + dr[1]*dr[1])
+            if r > blmax:
+                blmax = r
+
+    window_deg = np.degrees(1.2*0.2/blmax)
+    print(f"window_deg: {window_deg}")
+    # window_deg = 5.0
 
     s = calc_score(
         init_parameters,
