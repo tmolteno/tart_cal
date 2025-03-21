@@ -35,16 +35,17 @@ def set_vis_mode(api):
         logger.exception(e)
         logger.error(f"Error in setting vis_mode")
 
+
 def load_data(api, config):
     logger.info(f"Loading new data from {api.root}")
     set_vis_mode(api)
-    time.sleep(3) # Wait for vis mode...
+    time.sleep(3)  # Wait for vis mode...
     vis_json = api.get("imaging/vis")
-    
+
     logger.info(f"Vis Json timestamp {vis_json['timestamp']}")
     ts = api_imaging.vis_json_timestamp(vis_json)
     logger.info(f"Timestamp {ts}")
-    logger.info(f"utcnow = {datetime.datetime.utcnow()}")
+    logger.info(f"utcnow = {datetime.datetime.now(datetime.UTC)}")
     logger.info(f"URL ts {ts.isoformat()}")
 
     cat_url = api.catalog_url(lon=config.get_lon(),
@@ -54,7 +55,6 @@ def load_data(api, config):
     src_json = api.get_url(cat_url)
     logger.info("Loading Complete")
     return vis_json, src_json
-
 
 
 def get_raw_data(api, config, vis_json):

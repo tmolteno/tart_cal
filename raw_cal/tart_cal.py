@@ -10,17 +10,18 @@
 """
 import matplotlib
 
-matplotlib.use("agg")
 import matplotlib.pyplot as plt
 
 import argparse
 import numpy as np
 import os
 import logging
+from scipy import optimize
+import json
 
 from copy import deepcopy
 
-import itertools
+import acquisition
 
 from tart.operation import settings
 from tart.operation import observation
@@ -35,8 +36,9 @@ from tart.util import constants
 from tart.util.angle import from_rad
 
 from tart_tools import api_imaging
-from tart_tools import api_handler
 
+
+matplotlib.use("agg")
 logger = logging.getLogger()
 
 triplets = None
@@ -44,11 +46,11 @@ ij_index = None
 jk_index = None
 ik_index = None
 
-import acquisition
 
 ift_scaled = None
 
-NANT=24
+
+NANT = 24
 
 
 class Param:
@@ -67,9 +69,8 @@ class Param:
         raise RuntimeError("Implement in subclass")
 
     def to_json(self):
-        gains = np.round(self.gains, 4).tolist()
         ret = {
-            "gain": [float(f) for f in gains],
+            "gain": np.round(self.gains, 4).tolist(),
             "rot_degrees": float(np.degrees(self.rot_rad)),
             "phase_offset": np.round(self.phase_offsets, 4).tolist(),
         }
@@ -90,10 +91,10 @@ class ParamReIm(Param):
 
     def __init__(self, nant, pointing_center, pointing_error):
         super().__init__(nant, pointing_center, pointing_error)
-        self.nend=int(2*self.nant-1)
-        self.free_antennas=slice(1,self.nant)
-        self.re_indices=slice(1, self.nant)
-        self.im_indices=slice(self.nant, self.nend)
+        self.nend = int(2*self.nant-1)
+        self.free_antennas = slice(1,self.nant)
+        self.re_indices = slice(1, self.nant)
+        self.im_indices = slice(self.nant, self.nend)
 
     def from_vector(self, x):
         self.rot_rad = x[0]
@@ -402,16 +403,13 @@ def calc_score(
     ret_zone, ret_std, ift_scaled, src_list, n_fft, bin_width, mask = calc_score_aux(
         opt_parameters, measurements, window_deg, original_positions
     )
-    ret = ret_zone + ret_std
+    ret = float(ret_zone + ret_std)
     if N_IT % 1000 == 0:
         # print(f"Iteration {N_IT}, score={ret:04.2f}")
         f_vs_iteration.append(ret)
 
     N_IT += 1
     return ret
-
-from scipy import optimize
-import json
 
 
 class MyTakeStep(object):
@@ -748,7 +746,7 @@ if __name__ == "__main__":
 
                         strengths.append(float(np.round(strength, 3)))
                         phases.append(float(np.round(phase, 3)))
-                        freqs.append(freq)
+                        freqs.append(float(np.round(freq, 1)))
 
                     acquisition_data[f"{prn_i}"]['strengths'] = strengths
                     acquisition_data[f"{prn_i}"]['phases'] = phases
@@ -782,15 +780,14 @@ if __name__ == "__main__":
             if sv['el'] < 15:
                 sv_noise += st
 
-            if sv['el'] > ARGS.elevation:
-                mean_str = np.median(st)
-                if (mean_str > 7.0):
-                    good_satellites.append(sv)
+            mean_str = np.median(st)
+            if (mean_str > 7.0):
+                good_satellites.append(sv)
 
-                    good = np.where(st > 7.0)
+                good = np.where(st > 7.0)
 
-                    best_acq[good] += st[good]
-                    n = n + 1
+                best_acq[good] += st[good]
+                n = n + 1
             print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
 
     if n == 0:
@@ -828,6 +825,11 @@ if __name__ == "__main__":
 
             print(src_list)
             print(good_satellites)
+    else:
+        # Remove satellites below elevation
+        for s in src_list:
+            if s.el_r < ARGS.elevation:
+                src_list.remove(s)
 
     if ARGS.phases:
         print("Using PHASES")
@@ -886,6 +888,7 @@ if __name__ == "__main__":
         update=False,
         show=False,
     )
+    s = float(s)
 
     print(f"Score from initial parameters = {s}")
     # bh_T = np.abs(s/40)
@@ -914,7 +917,7 @@ if __name__ == "__main__":
     if method == "DE":
         ret = optimize.differential_evolution(f, bounds, disp=True)
     if method == "BH":
-        bh_basin_progress = [[0, float(s)]]
+        bh_basin_progress = [[0, s]]
         minimizer_kwargs = {
             "method": "L-BFGS-B",
             "jac": False,
@@ -944,7 +947,7 @@ if __name__ == "__main__":
     rot_rad = myParam.rot_rad
     output_json = myParam.to_json()
     output_json["message"] = ret.message
-    output_json["optimum"] = ret.fun
+    output_json["optimum"] = float(ret.fun)
     output_json["iterations"] = ret.nit
 
     new_positions = settings.rotate_location(
@@ -952,7 +955,7 @@ if __name__ == "__main__":
     )
     pos_list = (np.array(new_positions).T).tolist()
     output_json["antenna_positions"] = pos_list
-
+    print(output_json)
     json_fname = f"{output_directory}/{method}_opt_json.json"
     with open(json_fname, "w") as fp:
         json.dump(output_json, fp, indent=4, separators=(",", ": "))
