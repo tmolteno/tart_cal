@@ -2,10 +2,10 @@
 while [ 0 ]
 do
         TARGET=bw-biust \
-        TART_CAL_ARGS="--get-gains" \
+        TART_CAL_ARGS="--get-gains --corr-only" \
         TART_GET_DATA=1 \
-        TART_NCAL=2 \
-        TART_CAL_INT=7 \
+        TART_NCAL=3 \
+        TART_CAL_INT=11 \
         TART_CAL_ITERATIONS=300 \
         TART_CAL_ELEVATION=40 \
         TART_CAL_POINTING=0 \
