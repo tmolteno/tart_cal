@@ -67,9 +67,10 @@ class Param:
         raise RuntimeError("Implement in subclass")
 
     def to_json(self):
+        gains = np.round(self.gains, 4).tolist()
         ret = {
-            "gain": np.round(self.gains, 4).tolist(),
-            "rot_degrees": np.degrees(self.rot_rad),
+            "gain": [float(f) for f in gains],
+            "rot_degrees": float(np.degrees(self.rot_rad)),
             "phase_offset": np.round(self.phase_offsets, 4).tolist(),
         }
         return ret
@@ -746,7 +747,7 @@ if __name__ == "__main__":
                             debug=False)
 
                         strengths.append(float(np.round(strength, 3)))
-                        phases.append(phase)
+                        phases.append(float(np.round(phase, 3)))
                         freqs.append(freq)
 
                     acquisition_data[f"{prn_i}"]['strengths'] = strengths
