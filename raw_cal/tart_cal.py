@@ -811,8 +811,9 @@ if __name__ == "__main__":
     if ARGS.corr_only:
         for m in measurements:
             cv, ts, src_list, prn_list, obs = m
-            print(src_list)
+            print("Source List:")
             for s in src_list:
+                print(f"    {s}")
                 good = False
                 for g in good_satellites:
 
@@ -820,16 +821,18 @@ if __name__ == "__main__":
                         print(np.degrees(s.el_r), g)
                         good = True
                 if good is False:
-                    print(f"Removing satellite {s}")
+                    print(f"        Removing satellite {s}")
                     src_list.remove(s)
-
-            print(src_list)
-            print(good_satellites)
     else:
         # Remove satellites below elevation
         for s in src_list:
             if s.el_r < ARGS.elevation:
+                print(f"        Removing satellite {s} {np.degrees(s.el_r):4.1f}")
                 src_list.remove(s)
+
+    print("Source List")
+    for s in src_list:
+        print(f"    {s}")
 
     if ARGS.phases:
         print("Using PHASES")
