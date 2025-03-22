@@ -5,8 +5,8 @@ do
         TART_CAL_ARGS="--get-gains --corr-only" \
         TART_GET_DATA=1 \
         TART_NCAL=3 \
-        TART_CAL_INT=11 \
-        TART_CAL_ITERATIONS=500 \
+        TART_CAL_INT=22 \
+        TART_CAL_ITERATIONS=1000 \
         TART_CAL_ELEVATION=40 \
         TART_CAL_POINTING=0 \
         TART_CAL_POINTING_RANGE=3 \
