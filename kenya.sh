@@ -1,13 +1,13 @@
 #!/bin/bash
 while [ 0 ]
 do
-        TARGET=mu-udm \
+        TARGET=tart-kenya \
         TART_CAL_ARGS="--get-gains --corr-only" \
         TART_GET_DATA=1 \
-        TART_NCAL=4 \
-        TART_CAL_INT=13 \
-        TART_CAL_ITERATIONS=1000 \
-        TART_CAL_ELEVATION=45 \
+        TART_NCAL=3 \
+        TART_CAL_INT=11 \
+        TART_CAL_ITERATIONS=300 \
+        TART_CAL_ELEVATION=40 \
         TART_CAL_POINTING=0 \
         TART_CAL_POINTING_RANGE=3 \
         TART_CAL_UPLOAD=1 \
