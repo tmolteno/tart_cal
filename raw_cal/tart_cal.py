@@ -788,10 +788,14 @@ if __name__ == "__main__":
 
                 best_acq[good] += st[good]
                 n = n + 1
-            print(f"Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
+            print(f"    Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
 
     if n == 0:
         raise RuntimeError("No satellites visible")
+
+    print("Good Satellites")
+    for s in good_satellites:
+        print(f"    {s}")
 
     best_acq = best_acq / n
     sv_noise = sv_noise / n
@@ -813,14 +817,17 @@ if __name__ == "__main__":
             cv, ts, src_list, prn_list, obs = m
             print("Source List:")
             for s in src_list:
-                print(f"    {s}")
                 good = False
                 for g in good_satellites:
 
-                    if np.abs(np.degrees(s.el_r) - g['el']) < 0.1:
-                        print(np.degrees(s.el_r), g)
+                    if ((np.abs(np.degrees(s.el_r) - g['el']) < 0.1) and
+                         (np.abs(np.degrees(s.az_r) - g['az']) < 0.1)):
                         good = True
-                if good is False:
+                        break
+
+                print(f"    {s} {good}")
+
+                if not good:
                     print(f"        Removing satellite {s}")
                     src_list.remove(s)
     else:
