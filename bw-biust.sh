@@ -6,7 +6,7 @@ do
         TART_GET_DATA=1 \
         TART_NCAL=3 \
         TART_CAL_INT=11 \
-        TART_CAL_ITERATIONS=300 \
+        TART_CAL_ITERATIONS=500 \
         TART_CAL_ELEVATION=40 \
         TART_CAL_POINTING=0 \
         TART_CAL_POINTING_RANGE=3 \
