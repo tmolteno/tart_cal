@@ -4,7 +4,7 @@
 #  Author. Tim Molteno. tim@elec.ac.nz (c) 2018-2022.
 #
 FROM debian:bookworm
-MAINTAINER Tim Molteno "tim@elec.ac.nz"
+LABEL Maintainer="Tim Molteno tim@elec.ac.nz"
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y &&  apt-get install -y \
@@ -22,7 +22,7 @@ RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install tart python packages
-RUN pip3 install --no-cache-dir tart tart-tools
+RUN pip3 install --no-cache-dir --no-compile tart_tools
 
 WORKDIR /app
 COPY raw_cal/*.py ./

@@ -1,6 +1,8 @@
 #!/bin/bash
 # while [ 0 ]; do ./test.sh ; done
 #
+: "${TART_CAL_UPLOAD:=0}"
+: "${CAL_CODE:='.'}"
 
 if [ ${TART_CAL_UPLOAD} != 1 ]; then
     echo "########################################################"
@@ -22,7 +24,6 @@ TART_API="https://api.elec.ac.nz/tart/${TARGET}"
 : "${TART_CAL_POINTING_RANGE:=3}"
 : "${TART_CAL_ARGS:=""}"
 : "${TART_GET_DATA:=1}"
-: "${TART_CAL_UPLOAD:=0}"
 
 echo "##"
 echo "##"
