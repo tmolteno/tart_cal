@@ -1,0 +1,31 @@
+[project]
+name = "raw_cal"
+version = "0.1.0"
+description = "TART Radio Telescope Calibration"
+authors = [
+    {name = "Tim Molteno",email = "tim@molteno.net"}
+]
+license = {text = "GPLv3"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "tqdm (>=4.67.1,<5.0.0)",
+    "numpy (>=1.6)",
+    "scipy (>=1.12,<2.0.0)",
+    "pyfftw (>=0.10.0,<0.16.0)",
+    "tart-tools (>=1.2.0b5,<2.0.0)",
+    "matplotlib (>=2.10.1,<4.0.0)",
+    "h5py (>=3.13.0,<4.0.0)"
+]
+
+
+[tool.poetry]
+packages = [{include = "raw_cal"}]
+
+[tool.poetry.scripts]
+raw_calibrate = "raw_cal.tart_cal:main"
+get_cal_data = "raw_cal.get_cal_data:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

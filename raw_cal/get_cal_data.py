@@ -57,8 +57,7 @@ def load_data(api, config):
     return vis_json, src_json
 
 
-def get_raw_data(api, config, vis_json):
-    global ARGS
+def get_raw_data(api, config, vis_json, directory='.'):
     try:
         ts = api_imaging.vis_json_timestamp(vis_json)
 
@@ -77,7 +76,7 @@ def get_raw_data(api, config, vis_json):
             set_vis_mode(api)
             time.sleep(3)
             resp_raw = api.get("raw/data")
-            
+
             # Find the entry closest to the timestamp
             best_dt = 999999
             entry = None
@@ -89,14 +88,12 @@ def get_raw_data(api, config, vis_json):
                     best_dt = dt
                     entry = e
                     logger.info(f"   best ts = {e_ts} dt={dt}")
-        
-            
         # entry = resp_raw[0]
         data_url = urllib.parse.urljoin(f"{api.root}/", entry["filename"])
 
         file_name = data_url.split("/")[-1]
 
-        file_path = os.path.join(ARGS.dir, file_name)
+        file_path = os.path.join(directory, file_name)
 
         if os.path.isfile(file_path):
             if api_handler.sha256_checksum(file_path) == entry["checksum"]:
@@ -112,8 +109,8 @@ def get_raw_data(api, config, vis_json):
     finally:
         set_vis_mode(api)
 
-if __name__ == "__main__":
 
+def main():
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
@@ -182,14 +179,13 @@ if __name__ == "__main__":
         api = api_handler.AuthorizedAPIhandler(ARGS.api, ARGS.pw)
 
         vis_json, src_json = load_data(api, config)  # Get Calibration Data
-        get_raw_data(api, config, vis_json)
+        get_raw_data(api, config, vis_json, ARGS.dir)
         data.append([vis_json, src_json])
         if i != ARGS.n - 1:
             logger.info("Sleeping {} minutes".format(ARGS.interval))
             time.sleep(ARGS.interval * 60)
     ret["data"] = data
-    
-    
+
     with open(f"{ARGS.dir}/{ARGS.file}", "w") as fp:
         json.dump(ret, fp, indent=4, separators=(",", ": "))
 

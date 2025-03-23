@@ -47,20 +47,20 @@ if [ ${TART_GET_DATA} == 1 ]; then
     mkdir -p ${OUTPUT_DIR}
     mkdir -p ${DATA_DIR}
     rm -rf ${DATA_DIR}/*
-    python3 raw_cal/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
+    get_cal_data --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 fi
 
 
 # Perform optimization
 # python3 raw_cal/pos_from_gps.py --api ${TART_API}  --elevation ${TART_CAL_ELEVATION}  --data ${DATA_DIR}  --dir ${OUTPUT_DIR}
-python3 raw_cal/tart_cal.py --api ${TART_API}  \
-                            --iterations ${TART_CAL_ITERATIONS} \
-                            --pointing-range ${TART_CAL_POINTING_RANGE} \
-                            --pointing ${TART_CAL_POINTING} \
-                            --elevation ${TART_CAL_ELEVATION}  \
-                            --data ${DATA_DIR}  \
-                            ${TART_CAL_ARGS} \
-                            --dir ${OUTPUT_DIR}
+raw_calibrate --api ${TART_API}  \
+            --iterations ${TART_CAL_ITERATIONS} \
+            --pointing-range ${TART_CAL_POINTING_RANGE} \
+            --pointing ${TART_CAL_POINTING} \
+            --elevation ${TART_CAL_ELEVATION}  \
+            --data ${DATA_DIR}  \
+            ${TART_CAL_ARGS} \
+            --dir ${OUTPUT_DIR}
 # 
 CALIB_OUTPUT=${OUTPUT_DIR}/BH_opt_json.json
 echo "##"

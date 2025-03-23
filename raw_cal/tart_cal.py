@@ -21,7 +21,7 @@ import json
 
 from copy import deepcopy
 
-import acquisition
+from .acquisition import acquire_full
 
 from tart.operation import settings
 from tart.operation import observation
@@ -303,10 +303,10 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                     full_sky_mask[y, x] = p
 
         if masks[i] is None:
-            print("Creating mask")
+            print(f"Creating mask {i}")
             mask = np.zeros_like(ift_scaled)
 
-            for s in src_list:
+            for s in good_source_lists[i]:
                 x0, y0 = s.get_px(n_fft)
                 d = s.deg_to_pix(n_fft, window_deg)
                 for y in range(mask.shape[0]):
@@ -316,7 +316,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                         mask[y, x] += p
 
             # Zone outside of mask
-            print(f"Max mask {np.max(mask)}, {np.min(mask)}")
+            print(f"Max mask {i} {np.max(mask)}, {np.min(mask)}")
             negative_mask = (-mask + 1)
             negative_mask[negative_mask < 0] = 0
 
@@ -333,7 +333,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                 vmin=0,
             )  # vmax=8
             plt.colorbar()
-            plt.title(f"Mask {ts}")
+            plt.title(f"Mask {i} {ts}")
             plt.xlim(1, -1)
             plt.ylim(-1, 1)
             plt.xlabel("East-West")
@@ -497,9 +497,10 @@ def de_callback(xk, convergence):
 
 
 import glob
+from tqdm import tqdm
 
-if __name__ == "__main__":
 
+def main():
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
@@ -651,6 +652,8 @@ if __name__ == "__main__":
     mask_sums = []
     inv_masks = []
     measurements = []
+    good_source_lists = []
+
     for d in calib_info["data"]:
 
         vis_json, src_json = d
@@ -715,7 +718,7 @@ if __name__ == "__main__":
 
     if calculate:
         full_acquisition_data = []
-        for m in measurements:
+        for i_m, m in enumerate(measurements):
             cv, ts, src_list, prn_list, obs = m
 
             acquisition_data = {}
@@ -725,13 +728,13 @@ if __name__ == "__main__":
                 prn_i, sv = svinfo
                 if (prn_i <= 32):
                     acquisition_data[f"{prn_i}"] = {}
-                    print(f"acquiring {svinfo}")
+                    print(f"acquiring {svinfo} obs={i_m}")
                     acquisition_data[f"{prn_i}"]['PRN'] = prn_i
 
                     strengths = []
                     phases = []
                     freqs = []
-                    for i in range(num_antenna):
+                    for i in tqdm(range(num_antenna)):
                         print(f"    Antenna {i}")
                         ant_i = obs.get_antenna(i)
                         mean_i = np.mean(ant_i)
@@ -741,11 +744,11 @@ if __name__ == "__main__":
                         num_samples_per_ms = sampling_freq // 1000
                         num_samples = int(2*num_samples_per_ms)
 
-                        [prn, strength, phase, freq] = acquisition.acquire_full(
+                        [prn, strength, phase, freq] = acquire_full(
                             raw_data,
                             sampling_freq=sampling_freq,
                             center_freq=4.092e6, searchBand=4000, PRN=prn_i,
-                            debug=True)
+                            debug=False)
 
                         strengths.append(float(np.round(strength, 3)))
                         phases.append(float(np.round(phase, 3)))
@@ -767,12 +770,13 @@ if __name__ == "__main__":
 
     best_acq = np.zeros(NANT)
     sv_noise = np.zeros(NANT) + 0
-    n = 0
     best_score = -999
 
     good_satellites = []
 
-    for acquisition_data in full_acquisition_data:
+    for i, acquisition_data in enumerate(full_acquisition_data):
+        n = 0
+        good_satellites.append([])
         for d in acquisition_data:
             acq = acquisition_data[d]
             ph = np.array(acq['phases'])
@@ -785,7 +789,7 @@ if __name__ == "__main__":
 
             mean_str = np.median(st)
             if (mean_str > 7.0):
-                good_satellites.append(sv)
+                good_satellites[i].append(sv)
 
                 good = np.where(st > 7.0)
 
@@ -793,12 +797,12 @@ if __name__ == "__main__":
                 n = n + 1
             print(f"    Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
 
-    if n == 0:
-        raise RuntimeError("No satellites visible")
+        if n == 0:
+            raise RuntimeError(f"No satellites visible in obs[{i}]")
 
-    print("Good Satellites")
-    for s in good_satellites:
-        print(f"    {s}")
+        print("Good Satellites obs[{i}]")
+        for s in good_satellites:
+            print(f"    {s}")
 
     best_acq = best_acq / n
     sv_noise = sv_noise / n
@@ -815,14 +819,14 @@ if __name__ == "__main__":
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
 
-    good_src_list = []
-    if ARGS.corr_only:
-        for m in measurements:
+    for i, m in enumerate(measurements):
+        good_src_list = []
+        if ARGS.corr_only:
             cv, ts, src_list, prn_list, obs = m
-            print("Source List:")
+            print(f"Source List[{i}]:")
             for s in src_list:
                 good = False
-                for g in good_satellites:
+                for g in good_satellites[i]:
                     el_match = (np.abs(np.degrees(s.el_r) - g['el']) < 0.1)
                     az_match = (np.abs(np.degrees(s.az_r) - g['az']) < 0.1)
                     if el_match and az_match:
@@ -831,16 +835,16 @@ if __name__ == "__main__":
                         break
 
                 print(f"    {s} {good}")
-    else:
-        # Remove satellites below elevation
-        for s in src_list:
-            if np.degrees(s.el_r) > ARGS.elevation:
-                good_src_list.append(s)
+        else:
+            # Remove satellites below elevation
+            for s in src_list:
+                if np.degrees(s.el_r) > ARGS.elevation:
+                    good_src_list.append(s)
 
-    src_list = good_src_list
-    print("Source List")
-    for s in src_list:
-        print(f"    {s}")
+        good_source_lists.append(good_src_list)
+        print(f"Source List [{i}]")
+        for s in good_src_list:
+            print(f"    {s}")
 
     if ARGS.phases:
         print("Using PHASES")
