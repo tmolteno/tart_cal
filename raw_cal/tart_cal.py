@@ -262,7 +262,8 @@ class ParamGainPhase(Param):
 
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam, mask_sums, full_sky_mask
+    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam
+    global mask_sums, full_sky_mask, ret_std, ret_zone
 
     myParam.from_vector(opt_parameters)
     rot_rad = myParam.rot_rad
@@ -371,7 +372,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     return (
         ret_zone, ret_std,
         ift_scaled,
-        src_list,
+        good_source_lists,
         n_fft,
         bin_width,
         mask,
@@ -386,8 +387,8 @@ def load_data_from_json(
     cv, ts = api_imaging.vis_calibrated(vis_json, config,
                                         gains, phases, flag_list)
     logger.info(f"    ts = {ts}")
-    src_list = elaz.from_json(src_json, el_threshold)
-    return cv, ts, src_list
+    _src_list = elaz.from_json(src_json, el_threshold)
+    return cv, ts, _src_list
 
 
 def calc_score(
@@ -440,7 +441,7 @@ def bh_callback(x, f, accepted):
 
         mask = masks[-1]
         ift_sel = ift_scaled*mask
-        x_list, y_list = elaz.get_source_coordinates(src_list)
+        x_list, y_list = elaz.get_source_coordinates(good_source_lists[0])
 
         plt.figure()
         plt.imshow(
@@ -500,11 +501,27 @@ def de_callback(xk, convergence):
 import glob
 from tqdm import tqdm
 myParam = None
-sampling_freq = None
+masks = []
+full_sky_mask = None
+mask_sums = []
+inv_masks = []
+measurements = []
+good_source_lists = []
+output_directory = None
+N_IT = None
+f_vs_iteration = None
+bh_basin_progress = None
+ift_scaled = None
+method = None
+ret_zone = None
+ret_std = None
+in_zone = None
 
 
 def main():
-    global myParam
+    global myParam, full_sky_mask, output_directory, N_IT, f_vs_iteration
+    global bh_basin_progress, method
+
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
@@ -651,15 +668,7 @@ def main():
     for raw_file in raw_files:
         raw_obs.append(observation.Observation_Load(raw_file))
 
-    masks = []
-    full_sky_mask = None
-    mask_sums = []
-    inv_masks = []
-    measurements = []
-    good_source_lists = []
-
     for d in calib_info["data"]:
-
         vis_json, src_json = d
         cv, ts, src_list = load_data_from_json(
             vis_json,
