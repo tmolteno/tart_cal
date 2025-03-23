@@ -18,7 +18,7 @@ RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install tart python packages
-RUN pip3 install --no-cache-dir --no-compile poetry
+RUN pip install --no-cache-dir --no-compile poetry
 
 WORKDIR /app
 COPY raw_cal raw_cal
@@ -32,6 +32,6 @@ WORKDIR /work
 
 # Add the calibrate script.
 ADD tart_calibrate.sh /tart_calibrate.sh
-ADD raw_calibrate.sh /raw_calibrate.sh
+ADD do_raw_cal.sh /raw_calibrate.sh
 
 # CMD sh /tart_calibrate.sh

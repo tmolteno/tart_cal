@@ -24,6 +24,7 @@ TART_API="https://api.elec.ac.nz/tart/${TARGET}"
 : "${TART_CAL_POINTING_RANGE:=3}"
 : "${TART_CAL_ARGS:=""}"
 : "${TART_GET_DATA:=1}"
+: "${TART_WORK_DIR:='.'}"
 
 echo "##"
 echo "##"
@@ -32,12 +33,14 @@ echo "## Pointing:   ${TART_CAL_POINTING} +/ ${TART_CAL_POINTING_RANGE}"
 echo "## Iterations: ${TART_CAL_ITERATIONS}"
 echo "## Elevation:  ${TART_CAL_ELEVATION}"
 echo "## Args:       ${TART_CAL_ARGS}"
+echo "## get_data:   ${TART_GET_DATA}"
+echo "## Work Dir:   ${TART_WORK_DIR}"
 echo "##"
 echo "##"
 
 
-DATA_DIR=./work_${TARGET}
-OUTPUT_DIR=./out_${TARGET} 
+DATA_DIR=${TART_WORK_DIR}/work_${TARGET}
+OUTPUT_DIR=${TART_WORK_DIR}/out_${TARGET}
 
 # 
 if [ ${TART_GET_DATA} == 1 ]; then
