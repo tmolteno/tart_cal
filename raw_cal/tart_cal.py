@@ -206,10 +206,10 @@ class ParamGainPhase(Param):
     def __init__(self, nant, pointing_center, pointing_error, gains):
         super().__init__(nant, pointing_center, pointing_error)
         self.gains = gains
-        self.nend=int(2*self.nant-1)
-        self.free_antennas=slice(1, self.nant)
-        self.gain_indices=slice(1, self.nant)
-        self.phase_indices=slice(self.nant, self.nend)
+        self.nend = int(2*self.nant-1)
+        self.free_antennas = slice(1, self.nant)
+        self.gain_indices = slice(1, self.nant)
+        self.phase_indices = slice(self.nant, self.nend)
         self.phase_offsets = np.zeros_like(self.gains)
 
     def take_step(self, x, stepsize):
@@ -228,8 +228,8 @@ class ParamGainPhase(Param):
 
         new_gains = x[self.gain_indices] + gain_steps
         new_phase = x[self.phase_indices] + phase_steps
-        new_phase[new_phase<-np.pi] += 2*np.pi
-        new_phase[new_phase>np.pi] -= 2*np.pi
+        new_phase[new_phase < -np.pi] += 2*np.pi
+        new_phase[new_phase > np.pi] -= 2*np.pi
         ret = np.concatenate(([new_rot], new_gains, new_phase))
         return ret
 
@@ -248,7 +248,7 @@ class ParamGainPhase(Param):
     def bounds(self, test_gains):
         bounds = [0] * self.nend
         bounds[0] = self.pointing_bounds()
-        for i in range(1,self.nant):
+        for i in range(1, self.nant):
             tg = test_gains[i]
             if tg < 0.01:
                 bounds[i] = (0, 1e-3)  # Gain bounds
@@ -355,8 +355,8 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         # the phases towards it.
         masked_img = masks[i]*np.clip(ift_scaled, a_min=0, a_max=sn_score/2)
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
-        #outmask_img = inv_masks[i]*ift_scaled
-        #out_zone = np.median(outmask_img)
+        # outmask_img = inv_masks[i]*ift_scaled
+        # out_zone = np.median(outmask_img)
 
         zone_score = (in_zone)**3
 
@@ -383,7 +383,8 @@ def load_data_from_json(
 ):
     logger.info("Loading data from JSON")
     logger.info(f"    vis_json = {vis_json['timestamp']}")
-    cv, ts = api_imaging.vis_calibrated(vis_json, config, gains, phases, flag_list)
+    cv, ts = api_imaging.vis_calibrated(vis_json, config,
+                                        gains, phases, flag_list)
     logger.info(f"    ts = {ts}")
     src_list = elaz.from_json(src_json, el_threshold)
     return cv, ts, src_list
@@ -422,8 +423,9 @@ class MyTakeStep(object):
 
 
 def bh_callback(x, f, accepted):
-    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method, full_sky_mask, ret_zone, ret_std, in_zone
-    #print(f"BH f={f:5.3f} accepted: {accepted}")
+    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
+    global full_sky_mask, ret_zone, ret_std, in_zone
+    # print(f"BH f={f:5.3f} accepted: {accepted}")
     if accepted:
         print(f"   S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
         myParam.from_vector(x)
@@ -730,6 +732,7 @@ if __name__ == "__main__":
                     phases = []
                     freqs = []
                     for i in range(num_antenna):
+                        print(f"    Antenna {i}")
                         ant_i = obs.get_antenna(i)
                         mean_i = np.mean(ant_i)
 
@@ -742,7 +745,7 @@ if __name__ == "__main__":
                             raw_data,
                             sampling_freq=sampling_freq,
                             center_freq=4.092e6, searchBand=4000, PRN=prn_i,
-                            debug=False)
+                            debug=True)
 
                         strengths.append(float(np.round(strength, 3)))
                         phases.append(float(np.round(phase, 3)))
@@ -812,6 +815,7 @@ if __name__ == "__main__":
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
 
+    good_src_list = []
     if ARGS.corr_only:
         for m in measurements:
             cv, ts, src_list, prn_list, obs = m
@@ -819,24 +823,21 @@ if __name__ == "__main__":
             for s in src_list:
                 good = False
                 for g in good_satellites:
-
-                    if ((np.abs(np.degrees(s.el_r) - g['el']) < 0.1) and
-                         (np.abs(np.degrees(s.az_r) - g['az']) < 0.1)):
+                    el_match = (np.abs(np.degrees(s.el_r) - g['el']) < 0.1)
+                    az_match = (np.abs(np.degrees(s.az_r) - g['az']) < 0.1)
+                    if el_match and az_match:
                         good = True
+                        good_src_list.append(s)
                         break
 
                 print(f"    {s} {good}")
-
-                if not good:
-                    print(f"        Removing satellite {s}")
-                    src_list.remove(s)
     else:
         # Remove satellites below elevation
         for s in src_list:
-            if s.el_r < ARGS.elevation:
-                print(f"        Removing satellite {s} {np.degrees(s.el_r):4.1f}")
-                src_list.remove(s)
+            if np.degrees(s.el_r) > ARGS.elevation:
+                good_src_list.append(s)
 
+    src_list = good_src_list
     print("Source List")
     for s in src_list:
         print(f"    {s}")

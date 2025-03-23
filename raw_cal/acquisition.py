@@ -1,8 +1,8 @@
 '''
     GNSS Satellite acquisition stuff
-    
+
     Author Tim Molteno. 2011-2019 tim@elec.ac.nz
-    
+
     # aptitude install libfftw3-dev
     # pip install pyfftw
 '''
@@ -12,6 +12,7 @@ import numpy as np
 import pyfftw
 import scipy
 from scipy import optimize
+
 
 def generateCAcode(PRN):
     # A lookup table from lecture notes from the danish GPS center
@@ -58,13 +59,16 @@ def gold(samples_per_code, PRN, epochs):
     code = CAcode[code_indices];
     return code
 
+
 def peak_func(x, a, b, c):
     return a*np.exp(-b*(x-c)**2)
+
 
 def residuals(p, y, x):
     a,b,c = p
     err = y-peak_func(x,a,b,c)
     return err
+
 
 def peak_fit(xdata,ydata,p0):
     return scipy.optimize.leastsq(residuals, p0, args=(ydata, xdata))
@@ -90,15 +94,19 @@ def correlate_aux_full(frequency, signal, phasepoints, codefreq):
     corr = np.abs(ifft_result) / np.sqrt(len(signal))
     return corr
 
+
 def acquire_aux_full(x, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints):
     total_samples = x.shape[0]
     result1 = np.empty((numberOfFrqBins, total_samples))
     for i in range(0, numberOfFrqBins):
         acqRes1 = correlate_aux_full(fc[i], x, phasepoints, codefreq)
-        result1[i,:] = acqRes1
+        result1[i, :] = acqRes1
     return result1
 
+
 def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
+    if debug:
+        print(f"acquire_full({x.shape}, {sampling_freq}, {center_freq}, {searchBand}, {PRN}, {debug})")
 
     pyfftw.interfaces.cache.enable()
     pyfftw.interfaces.cache.set_keepalive_time(50.0)
@@ -115,21 +123,20 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     if debug:
         print(f"Acquisition: total_samples={total_samples}")
 
-    freqBinSize= 0.3e3
+    freqBinSize = 0.3e3
     numberOfFrqBins = int(round(2*searchBand/freqBinSize)) + 1
     fc = np.linspace(center_freq - searchBand, center_freq + searchBand, numberOfFrqBins)
 
     # Construct variables for use of FFTW
     align = pyfftw.simd_alignment
     dtype = 'complex64'
-    #dtype = 'complex128'
+    # dtype = 'complex128'
     global full_fft_in, full_fft_out, full_fft_machine, full_ifft_in, full_ifft_out, full_ifft_machine
 
-
-    write_wisdom=False
+    write_wisdom = False
     try:
         import pickle
-        wisdom = pickle.load( open( "wisdom_full.wis", "rb" ) )
+        wisdom = pickle.load(open("wisdom_full.wis", "rb" ))
         pyfftw.import_wisdom(wisdom)
     except:
         write_wisdom = True
@@ -141,9 +148,13 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     full_ifft_out = pyfftw.empty_aligned(total_samples, dtype=dtype, n=align)
 
     start = time.time()
-
-    full_fft_machine = pyfftw.FFTW(full_fft_in, full_fft_out, flags=('FFTW_MEASURE',))
-    full_ifft_machine = pyfftw.FFTW(full_ifft_in, full_ifft_out, direction='FFTW_BACKWARD', flags=('FFTW_MEASURE',))
+    if debug:
+        print(f"starting {start}")
+    full_fft_machine = pyfftw.FFTW(full_fft_in, full_fft_out,
+                                   flags=('FFTW_MEASURE',))
+    full_ifft_machine = pyfftw.FFTW(full_ifft_in, full_ifft_out,
+                                    direction='FFTW_BACKWARD',
+                                    flags=('FFTW_MEASURE',))
 
     if debug:
         print('setup took', time.time()-start)
@@ -151,8 +162,7 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     if write_wisdom:
         wisdom = pyfftw.export_wisdom()
         import pickle
-        pickle.dump( wisdom, open( "wisdom_full.wis", "wb" ) )
-
+        pickle.dump(wisdom, open("wisdom_full.wis", "wb"))
 
     code_samples = np.arange(total_samples)
     # Generate a local signal sampled at the right sampling rate, and no phase change.
@@ -169,8 +179,7 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     if debug:
         print('gold code numpyfft took', time.time()-start)
 
-
-    xcorr = np.zeros((numberOfFrqBins, total_samples)) # arguments need to be type int.
+    # xcorr = np.zeros((numberOfFrqBins, total_samples)) # arguments need to be type int.
 
     start = time.time()
 
@@ -188,7 +197,7 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     if debug:
         print(f"corr {sn0} took {time.time()-start}")
 
-    signal_strength = best_sn0 #best_xcorr/best_epoch_xcorr.std()
+    signal_strength = best_sn0  # best_xcorr/best_epoch_xcorr.std()
     # Calculate the average correlation
     result = epoch_xcorr
 
@@ -204,8 +213,6 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     return [PRN, signal_strength, codephase_frac, frequency]
 
 
-
-
 # FFTW variables
 fft_in = 0
 fft_out = 0
@@ -213,6 +220,7 @@ fft_machine = 0
 ifft_in = 0
 ifft_out = 0
 ifft_machine = 0
+
 
 def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
@@ -226,22 +234,21 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
     epochs_available = np.floor(np.size(x)/samples_per_ms)
 
-    freqBinSize= 0.5e3
+    freqBinSize = 0.5e3
     numberOfFrqBins = int(round(2*searchBand/freqBinSize)) + 1
     fc = np.linspace(center_freq - searchBand, center_freq + searchBand, numberOfFrqBins)
 
     # Construct variables for use of FFTW
     align = pyfftw.simd_alignment
     dtype = 'complex64'
-    #dtype = 'complex128'
+    # dtype = 'complex128'
     global fft_in, fft_out, fft_machine, ifft_in, ifft_out, ifft_machine
     global fft2d_in, fft2d_out, fft2d_machine, ifft2d_in, ifft2d_out, ifft2d_machine
 
-
-    write_wisdom=False
+    write_wisdom = False
     try:
         import pickle
-        wisdom = pickle.load( open( "wisdom.wis", "rb" ) )
+        wisdom = pickle.load( open("wisdom.wis", "rb"))
         pyfftw.import_wisdom(wisdom)
     except:
         write_wisdom = True
@@ -323,7 +330,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     if debug:
         print('corr took', time.time()-start)
 
-    
+
     signal_strength = best_sn0 #best_xcorr/best_epoch_xcorr.std()
     # Calculate the average correlation
     result = best_epoch_xcorr
