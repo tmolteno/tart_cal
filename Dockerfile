@@ -22,6 +22,7 @@ RUN pip3 install --no-cache-dir --no-compile poetry
 
 WORKDIR /app
 COPY raw_cal raw_cal
+COPY README.md .
 COPY pyproject.toml .
 COPY poetry.lock .
 RUN ls -rl
