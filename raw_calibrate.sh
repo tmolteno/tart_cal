@@ -28,10 +28,10 @@ echo "Working directory: ${DIR}"
 echo "Data directory: ${DATA_DIR}"
 
 # Get calibration data
-python3 /app/get_cal_data.py --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
+get_cal_data --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 
 # Perform optimization
-python3 /app/tart_cal.py --api ${TART_API} ${TART_CAL_ARGS} \
+raw_calibrate --api ${TART_API} ${TART_CAL_ARGS} \
             --elevation ${TART_CAL_ELEVATION} --iterations ${TART_CAL_ITERATIONS} \
             --pointing-range ${TART_CAL_POINTING_RANGE} \
             --pointing ${TART_CAL_POINTING} \

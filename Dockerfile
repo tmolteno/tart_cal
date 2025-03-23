@@ -22,10 +22,12 @@ RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install tart python packages
+RUN pip3 install --no-cache-dir --no-compile poetry
 RUN pip3 install --no-cache-dir --no-compile tart_tools
 
 WORKDIR /app
 COPY raw_cal/*.py ./
+COPY pyproject.toml ./
 
 # setup working directory
 WORKDIR /work
