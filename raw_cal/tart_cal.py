@@ -419,12 +419,13 @@ class MyTakeStep(object):
         self.pointing_rad = pointing_rad
 
     def __call__(self, x):
+        global myParam
         return myParam.take_step(x, self.stepsize)
 
 
 def bh_callback(x, f, accepted):
     global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
-    global full_sky_mask, ret_zone, ret_std, in_zone
+    global full_sky_mask, ret_zone, ret_std, in_zone, myParam
     # print(f"BH f={f:5.3f} accepted: {accepted}")
     if accepted:
         print(f"   S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
@@ -498,9 +499,12 @@ def de_callback(xk, convergence):
 
 import glob
 from tqdm import tqdm
+myParam = None
+sampling_freq = None
 
 
 def main():
+    global myParam
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
     ch = logging.StreamHandler()

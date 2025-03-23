@@ -7,8 +7,9 @@ FROM debian:bookworm
 LABEL Maintainer="Tim Molteno tim@elec.ac.nz"
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update -y &&  apt-get install -y python3-venv
-    
+RUN apt-get update -y &&  apt-get install -y \
+    python3-venv
+
 RUN apt-get clean -y
 RUN rm -rf /var/lib/apt/lists/*
 
@@ -20,8 +21,10 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN pip3 install --no-cache-dir --no-compile poetry
 
 WORKDIR /app
-COPY raw_cal ./
-COPY pyproject.toml ./
+COPY raw_cal raw_cal
+COPY pyproject.toml .
+COPY poetry.lock .
+RUN ls -rl
 RUN poetry install
 # setup working directory
 WORKDIR /work
