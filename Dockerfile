@@ -7,12 +7,7 @@ FROM debian:bookworm
 LABEL Maintainer="Tim Molteno tim@elec.ac.nz"
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update -y &&  apt-get install -y \
-    python3-pip python3-numpy python3-dateutil \
-    python3-matplotlib python3-scipy \
-    python3-astropy python3-healpy \
-    python3-h5py python3-requests \
-    python3-pyfftw python3-venv
+RUN apt-get update -y &&  apt-get install -y python3-venv
     
 RUN apt-get clean -y
 RUN rm -rf /var/lib/apt/lists/*
@@ -23,12 +18,11 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install tart python packages
 RUN pip3 install --no-cache-dir --no-compile poetry
-RUN pip3 install --no-cache-dir --no-compile tart_tools
 
 WORKDIR /app
-COPY raw_cal/*.py ./
+COPY raw_cal ./
 COPY pyproject.toml ./
-
+RUN poetry install
 # setup working directory
 WORKDIR /work
 

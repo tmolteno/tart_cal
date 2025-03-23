@@ -735,7 +735,6 @@ def main():
                     phases = []
                     freqs = []
                     for i in tqdm(range(num_antenna)):
-                        print(f"    Antenna {i}")
                         ant_i = obs.get_antenna(i)
                         mean_i = np.mean(ant_i)
 
