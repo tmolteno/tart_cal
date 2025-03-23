@@ -47,7 +47,6 @@ jk_index = None
 ik_index = None
 
 
-ift_scaled = None
 
 
 NANT = 24
@@ -262,8 +261,9 @@ class ParamGainPhase(Param):
 
 
 def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index, masks, ift_scaled, myParam
-    global mask_sums, full_sky_mask, ret_std, ret_zone
+    global triplets, ij_index, jk_index, ik_index, mask_list, myParam
+    global mask_sums, ret_std, ret_zone, full_sky_masks
+    global ift_scaled_list
 
     myParam.from_vector(opt_parameters)
     rot_rad = myParam.rot_rad
@@ -274,6 +274,11 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     ret_std = 0.0
 
     ant_idxs = np.arange(NANT)
+    ift_scaled_list = []
+    if full_sky_masks is None:
+        full_sky_masks = [None for m in measurements]
+    if mask_list is None:
+        mask_list = [None for m in measurements]
 
     for i, m in enumerate(measurements):
         cv, ts, src_list, prn_list, obs = m
@@ -290,8 +295,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         abs_ift = np.abs(cal_ift)
         ift_std = np.median(abs_ift)
         ift_scaled = abs_ift / ift_std
+        ift_scaled_list.append(ift_scaled)
 
-        if full_sky_mask is None:
+        if full_sky_masks[i] is None:
             x0, y0 = n_fft // 2, n_fft // 2
             d = (n_fft // 3)**2
             full_sky_mask = np.zeros_like(ift_scaled)
@@ -302,8 +308,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                     if p > 0.2:
                         p = 1
                     full_sky_mask[y, x] = p
+            full_sky_masks[i] = full_sky_mask
 
-        if masks[i] is None:
+        if mask_list[i] is None:
             print(f"Creating mask {i}")
             mask = np.zeros_like(ift_scaled)
 
@@ -321,10 +328,11 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             negative_mask = (-mask + 1)
             negative_mask[negative_mask < 0] = 0
 
+            mask_list[i] = mask
             inv_masks[i] = negative_mask
 
             # mask[mask>0.4] = 1
-            masks[i] = mask
+            mask_list[i] = mask
             mask_sums[i] = np.sum(mask)
 
             plt.figure()
@@ -343,10 +351,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             plt.savefig(f"{output_directory}/mask_{i}.png")
             plt.close()
 
-        sn_score = (ift_scaled*full_sky_mask).max()  # Peak signal to noise.
+        sn_score = (ift_scaled*full_sky_masks[i]).max()  # Peak signal to noise.
         ret_std += -np.sqrt(sn_score)
 
-        mask = masks[i]
 
         #
         # Clip the image at 0.5 maximum, and then calculated a score
@@ -354,7 +361,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         #
         # This is an attempt to avoid bright unknown sources from skewing
         # the phases towards it.
-        masked_img = masks[i]*np.clip(ift_scaled, a_min=0, a_max=sn_score/2)
+        masked_img = mask_list[i]*np.clip(ift_scaled, a_min=0, a_max=sn_score/2)
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         # outmask_img = inv_masks[i]*ift_scaled
         # out_zone = np.median(outmask_img)
@@ -371,11 +378,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
     return (
         ret_zone, ret_std,
-        ift_scaled,
-        good_source_lists,
+        ift_scaled_list,
         n_fft,
-        bin_width,
-        mask,
+        bin_width
     )
 
 
@@ -402,7 +407,7 @@ def calc_score(
 ):
     global N_IT, method, output_directory, f_vs_iteration, ret_zone, ret_std
 
-    ret_zone, ret_std, ift_scaled, src_list, n_fft, bin_width, mask = calc_score_aux(
+    ret_zone, ret_std, ift_scaled_list, n_fft, bin_width = calc_score_aux(
         opt_parameters, measurements, window_deg, original_positions
     )
     ret = float(ret_zone + ret_std)
@@ -425,8 +430,9 @@ class MyTakeStep(object):
 
 
 def bh_callback(x, f, accepted):
-    global output_directory, bh_basin_progress, N_IT, ift_scaled, masks, method
-    global full_sky_mask, ret_zone, ret_std, in_zone, myParam
+    global output_directory, bh_basin_progress, N_IT, ift_scaled_list, mask_list
+    global ret_zone, ret_std, in_zone, myParam
+    global good_source_lists, method
     # print(f"BH f={f:5.3f} accepted: {accepted}")
     if accepted:
         print(f"   S/N {ret_std:04.2f}, ZONE: {ret_zone:04.2f}")
@@ -439,58 +445,58 @@ def bh_callback(x, f, accepted):
         with open(f"{output_directory}/BH_basin_{f:5.3f}_{N_IT}.json", "w") as fp:
             myParam.output(fp)
 
-        mask = masks[-1]
-        ift_sel = ift_scaled*mask
-        x_list, y_list = elaz.get_source_coordinates(good_source_lists[0])
+        for i, mask in enumerate(mask_list):
+            ift_sel = ift_scaled_list[i] * mask
+            x_list, y_list = elaz.get_source_coordinates(good_source_lists[i])
 
-        plt.figure()
-        plt.imshow(
-            ift_sel,
-            extent=[-1, 1, -1, 1],
-            vmin=0,
-        )  # vmax=8
-        plt.colorbar()
-        plt.xlim(1, -1)
-        plt.ylim(-1, 1)
-        plt.scatter(x_list, y_list, c="red", s=5)
-        plt.xlabel("East-West")
-        plt.ylabel("North-South")
-        plt.tight_layout()
-        plt.savefig(f"{output_directory}/mask_{f:5.3f}_{N_IT:05d}.png")
-        plt.close()
+            plt.figure()
+            plt.imshow(
+                ift_sel,
+                extent=[-1, 1, -1, 1],
+                vmin=0,
+            )  # vmax=8
+            plt.colorbar()
+            plt.xlim(1, -1)
+            plt.ylim(-1, 1)
+            plt.scatter(x_list, y_list, c="red", s=5)
+            plt.xlabel("East-West")
+            plt.ylabel("North-South")
+            plt.tight_layout()
+            plt.savefig(f"{output_directory}/mask_{i}_{f:5.3f}_{N_IT:05d}.png")
+            plt.close()
 
-        plt.figure()
-        plt.imshow(
-            ift_scaled*full_sky_mask,
-            extent=[-1, 1, -1, 1],
-            vmin=0,
-        )  # vmax=8
-        plt.colorbar()
-        plt.xlim(1, -1)
-        plt.ylim(-1, 1)
-        plt.scatter(x_list, y_list, c="red", s=5)
-        plt.xlabel("East-West")
-        plt.ylabel("North-South")
-        plt.tight_layout()
-        plt.savefig(f"{output_directory}/full_sky_mask_{f:5.3f}_{N_IT:05d}.png")
-        plt.close()
+            plt.figure()
+            plt.imshow(
+                ift_scaled_list[i]*full_sky_masks[i],
+                extent=[-1, 1, -1, 1],
+                vmin=0,
+            )  # vmax=8
+            plt.colorbar()
+            plt.xlim(1, -1)
+            plt.ylim(-1, 1)
+            plt.scatter(x_list, y_list, c="red", s=5)
+            plt.xlabel("East-West")
+            plt.ylabel("North-South")
+            plt.tight_layout()
+            plt.savefig(f"{output_directory}/full_sky_mask_{i}_{f:5.3f}_{N_IT:05d}.png")
+            plt.close()
 
-        plt.figure()
-        plt.imshow(
-            ift_scaled,
-            extent=[-1, 1, -1, 1],
-            vmin=0,
-        )  # vmax=8
-        plt.colorbar()
-        plt.xlim(1, -1)
-        plt.ylim(-1, 1)
-        plt.title(f"f={f:4.2f} r={np.degrees(myParam.rot_rad):4.2f}")
-        plt.scatter(x_list, y_list, c="red", s=5)
-        plt.xlabel("East-West")
-        plt.ylabel("North-South")
-        plt.tight_layout()
-        plt.savefig(f"{output_directory}/{method}_{f:5.3f}_accepted_{N_IT:05d}.png")
-        plt.close()
+            plt.figure()
+            plt.imshow(
+                ift_scaled_list[i],
+                extent=[-1, 1, -1, 1],
+                vmin=0,
+            )  # vmax=8
+            plt.colorbar()
+            plt.xlim(1, -1)
+            plt.ylim(-1, 1)
+            plt.title(f"f={f:4.2f} i={i} r={np.degrees(myParam.rot_rad):4.2f}")
+            plt.scatter(x_list, y_list, c="red", s=5)
+            plt.xlabel("East-West")
+            plt.ylabel("North-South")
+            plt.tight_layout()
+            plt.savefig(f"{output_directory}/{method}_{i}_{f:5.3f}_accepted_{N_IT:05d}.png")
+            plt.close()
 
 
 def de_callback(xk, convergence):
@@ -501,8 +507,8 @@ def de_callback(xk, convergence):
 import glob
 from tqdm import tqdm
 myParam = None
-masks = []
-full_sky_mask = None
+mask_list = None
+full_sky_masks = None
 mask_sums = []
 inv_masks = []
 measurements = []
@@ -511,7 +517,7 @@ output_directory = None
 N_IT = None
 f_vs_iteration = None
 bh_basin_progress = None
-ift_scaled = None
+ift_scaled_list = None
 method = None
 ret_zone = None
 ret_std = None
@@ -519,7 +525,7 @@ in_zone = None
 
 
 def main():
-    global myParam, full_sky_mask, output_directory, N_IT, f_vs_iteration
+    global myParam, output_directory, N_IT, f_vs_iteration
     global bh_basin_progress, method
 
     logger.setLevel(logging.DEBUG)
@@ -713,7 +719,6 @@ def main():
         logger.info(f"Config: {vis.config.Dict}")
 
         measurements.append([cv, ts, src_list, prn_list, obs])
-        masks.append(None)
         inv_masks.append(None)
         mask_sums.append(None)
 
