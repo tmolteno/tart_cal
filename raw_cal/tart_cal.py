@@ -26,16 +26,13 @@ from .acquisition import acquire_full
 from tart.operation import settings
 from tart.operation import observation
 
-from tart.imaging import visibility
-from tart.imaging import calibration
-from tart.imaging import synthesis
 from tart.imaging import elaz
 from tart.imaging import correlator
 
-from tart.util import constants
-from tart.util.angle import from_rad
-
 from tart_tools import api_imaging
+
+import glob
+from tqdm import tqdm
 
 
 matplotlib.use("agg")
@@ -91,7 +88,7 @@ class ParamReIm(Param):
     def __init__(self, nant, pointing_center, pointing_error):
         super().__init__(nant, pointing_center, pointing_error)
         self.nend = int(2*self.nant-1)
-        self.free_antennas = slice(1,self.nant)
+        self.free_antennas = slice(1, self.nant)
         self.re_indices = slice(1, self.nant)
         self.im_indices = slice(self.nant, self.nend)
 
@@ -105,7 +102,8 @@ class ParamReIm(Param):
     def to_vector(self):
         ret = np.zeros(self.nend)
         ret[0] = self.rot_rad
-        z = self.gains[self.free_antennas] * np.exp(self.phase_offsets[self.free_antennas] * 1j)
+        z = self.gains[self.free_antennas] * \
+            np.exp(self.phase_offsets[self.free_antennas] * 1j)
         ret[self.re_indices] = z.real
         ret[self.im_indices] = z.imag
         return ret
@@ -155,7 +153,6 @@ class ParamPhase(Param):
         self.gains = gains
         self.nend = nant
         self.free_antennas = slice(1, self.nant)
-        # self.phase_indices=slice(1, self.nant)
         self.phase_indices = slice(1, self.nant)
         self.phase_offsets = np.zeros_like(self.gains)
 
@@ -298,17 +295,30 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         ift_scaled_list.append(ift_scaled)
 
         if full_sky_masks[i] is None:
-            x0, y0 = n_fft // 2, n_fft // 2
-            d = (n_fft // 3)**2
-            full_sky_mask = np.zeros_like(ift_scaled)
-            for y in range(full_sky_mask.shape[0]):
-                for x in range(full_sky_mask.shape[1]):
-                    r2 = (y - y0)**2 + (x - x0)**2
-                    p = np.exp(-(r2/d))
-                    if p > 0.2:
-                        p = 1
-                    full_sky_mask[y, x] = p
-            full_sky_masks[i] = full_sky_mask
+            if False:
+                x0, y0 = n_fft // 2, n_fft // 2
+                d = (n_fft // 3)**2
+                full_sky_mask = np.zeros_like(ift_scaled)
+                for y in range(full_sky_mask.shape[0]):
+                    for x in range(full_sky_mask.shape[1]):
+                        r2 = (y - y0)**2 + (x - x0)**2
+                        p = np.exp(-(r2/d))
+                        if p > 0.2:
+                            p = 1
+                        full_sky_mask[y, x] = p
+                full_sky_masks[i] = full_sky_mask
+            else:
+                x0, y0 = n_fft // 2, n_fft // 2
+                d = (n_fft / 2.5)**2
+                full_sky_mask = np.zeros_like(ift_scaled)
+                for y in range(full_sky_mask.shape[0]):
+                    for x in range(full_sky_mask.shape[1]):
+                        r2 = (y - y0)**2 + (x - x0)**2
+                        p = np.exp(-(r2/d))
+                        if p > 0.2:
+                            p = 1
+                        full_sky_mask[y, x] = p
+                full_sky_masks[i] = full_sky_mask
 
         if mask_list[i] is None:
             print(f"Creating mask {i}")
@@ -316,7 +326,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             for s in good_source_lists[i]:
                 x0, y0 = s.get_px(n_fft)
-                d = s.deg_to_pix(n_fft, window_deg)
+                d = s.deg_to_pix(n_fft, window_deg*1.5)**2
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2
@@ -504,8 +514,6 @@ def de_callback(xk, convergence):
     output_param(xk)
 
 
-import glob
-from tqdm import tqdm
 myParam = None
 mask_list = None
 full_sky_masks = None

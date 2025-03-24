@@ -73,6 +73,7 @@ def residuals(p, y, x):
 def peak_fit(xdata,ydata,p0):
     return scipy.optimize.leastsq(residuals, p0, args=(ydata, xdata))
 
+
 # FFTW variables
 full_fft_in = 0
 full_fft_out = 0
@@ -80,6 +81,7 @@ full_fft_machine = 0
 full_ifft_in = 0
 full_ifft_out = 0
 full_ifft_machine = 0
+
 
 def correlate_aux_full(frequency, signal, phasepoints, codefreq):
     expfreq = np.exp(phasepoints*frequency)
@@ -131,12 +133,13 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     align = pyfftw.simd_alignment
     dtype = 'complex64'
     # dtype = 'complex128'
-    global full_fft_in, full_fft_out, full_fft_machine, full_ifft_in, full_ifft_out, full_ifft_machine
+    global full_fft_in, full_fft_out, full_fft_machine
+    global full_ifft_in, full_ifft_out, full_ifft_machine
 
     write_wisdom = False
     try:
         import pickle
-        wisdom = pickle.load(open("wisdom_full.wis", "rb" ))
+        wisdom = pickle.load(open("wisdom_full.wis", "rb"))
         pyfftw.import_wisdom(wisdom)
     except:
         write_wisdom = True
@@ -279,7 +282,6 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
         import pickle
         pickle.dump( wisdom, open( "wisdom.wis", "wb" ) )
 
-
     code_samples = np.arange(samples_per_chunk)
     # Generate a local signal sampled at the right sampling rate, and no phase change.
     start = time.time()
@@ -295,8 +297,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     if debug:
         print('gold code numpyfft took', time.time()-start)
 
-
-    xcorr = np.zeros((numberOfFrqBins, samples_per_chunk)) # arguments need to be type int.
+    xcorr = np.zeros((numberOfFrqBins, samples_per_chunk))  # arguments need to be type int.
     best_epoch = -1
     best_xcorr = -1
     best_sn0 = -1
@@ -330,7 +331,6 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     if debug:
         print('corr took', time.time()-start)
 
-
     signal_strength = best_sn0 #best_xcorr/best_epoch_xcorr.std()
     # Calculate the average correlation
     result = best_epoch_xcorr
@@ -345,15 +345,13 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     # frequency = fc[freq] - center_freq
     # print 'PRN %02i, freqmax %3.3e phase %3.3e' % (PRN, fc[freq], codephase)
 
-
     #frequencies = best_epoch_xcorr.max(1)
     #freq = frequencies.argmax()
     frequency = fc[freq] - center_freq     # This is the doppler
-    
+
     #phases = best_epoch_xcorr.max(0)
     #codephase = phases.argmax() % int(samples_per_ms)
     #codephase_frac = codephase / samples_per_ms
-
 
     #autocorrelation = result[freq,:]
 
@@ -436,6 +434,7 @@ def optimize_fit(PRN, x, epochs_available, samples_per_ms, sampling_period, fc, 
         pass
     return [codephase_frac, frequency, cp_peak]
 
+
 def correlate_aux(frequency, signal, phasepoints, codefreq):
     expfreq = np.exp(phasepoints*frequency)
 
@@ -448,6 +447,7 @@ def correlate_aux(frequency, signal, phasepoints, codefreq):
 
     corr = np.abs(ifft_result) / np.sqrt(len(signal))
     return corr
+
 
 def acquire_aux(x, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints):
     samples_per_ms = sampling_freq/1000.0    # Samples per millisecond

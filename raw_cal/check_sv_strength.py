@@ -11,6 +11,7 @@ from tart.imaging import correlator
 from tart_cal import load_data_from_json
 from acquisition import acquire
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Calibrate the tart telescope from downloaded data.",
@@ -55,7 +56,7 @@ if __name__ == "__main__":
             gains,
             phase_offsets,
             flag_list,
-            el_threshold=0,
+            el_threshold=0
         )
 
         prn_list = []
@@ -70,12 +71,12 @@ if __name__ == "__main__":
                 prn_list.append((int(prn), sv))
             except:
                 pass
-                #print(prn)
+                print(f"PRN {prn} not an integer")
 
         # Load the data here from the raw file
         obs = observation.Observation_Load(raw_file)
 
-        print(obs.timestamp , cv.get_timestamp())
+        print(f"ts = {obs.timestamp}, {cv.get_timestamp()}")
         corr = correlator.Correlator()
         vis = corr.correlate(obs)
         print(f"Timestamp: {vis.timestamp}")
@@ -85,8 +86,6 @@ if __name__ == "__main__":
         masks.append(None)
         inv_masks.append(None)
         mask_sums.append(None)
-
-
 
     try:
         with open(f"{data_dir}/gps_acquisition.json", "r") as fp:
@@ -117,9 +116,11 @@ if __name__ == "__main__":
 
                         num_samples_per_ms = sampling_freq // 1000
                         num_samples = int(2*num_samples_per_ms)
-                        [prn, strength, phase, freq] = acquire(raw_data[0:num_samples],
-                                sampling_freq=sampling_freq,
-                                center_freq=4.092e6, searchBand=6000, PRN=prn_i, debug=False)
+                        [prn, strength, phase, freq] = acquire(
+                            raw_data[0:num_samples],
+                            sampling_freq=sampling_freq,
+                            center_freq=4.092e6, searchBand=6000,
+                            PRN=prn_i, debug=False)
 
                         strengths.append(strength)
                         phases.append(phase)
@@ -130,13 +131,12 @@ if __name__ == "__main__":
                     acquisition_data[f"{prn_i}"]['freqs'] = freqs
                     acquisition_data[f"{prn_i}"]['sv'] = sv
 
-
                     print(acquisition_data[f"{prn_i}"])
             full_acquisition_data.append(acquisition_data)
 
         with open(f"{data_dir}/gps_acquisition.json", "w") as fp:
-            json.dump(full_acquisition_data, fp, indent=4, separators=(",", ": "))
-
+            json.dump(full_acquisition_data, fp,
+                      indent=4, separators=(",", ": "))
 
     print("Finding visible satellites")
 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         raise RuntimeError("No satellites visible")
 
     best_acq = best_acq / n
-    print(f"Calculating best SV signal strengths per antenna:")
+    print("Calculating best SV signal strengths per antenna:")
     for i in range(24):
         print(f"   {i:2d} {best_acq[i]:4.2f}")
 
