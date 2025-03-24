@@ -22,6 +22,7 @@ import json
 from copy import deepcopy
 
 from .acquisition import acquire_full
+from .pos_from_gps import get_gnss_data
 
 from tart.operation import settings
 from tart.operation import observation
@@ -295,30 +296,17 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         ift_scaled_list.append(ift_scaled)
 
         if full_sky_masks[i] is None:
-            if False:
-                x0, y0 = n_fft // 2, n_fft // 2
-                d = (n_fft // 3)**2
-                full_sky_mask = np.zeros_like(ift_scaled)
-                for y in range(full_sky_mask.shape[0]):
-                    for x in range(full_sky_mask.shape[1]):
-                        r2 = (y - y0)**2 + (x - x0)**2
-                        p = np.exp(-(r2/d))
-                        if p > 0.2:
-                            p = 1
-                        full_sky_mask[y, x] = p
-                full_sky_masks[i] = full_sky_mask
-            else:
-                x0, y0 = n_fft // 2, n_fft // 2
-                d = (n_fft / 2.5)**2
-                full_sky_mask = np.zeros_like(ift_scaled)
-                for y in range(full_sky_mask.shape[0]):
-                    for x in range(full_sky_mask.shape[1]):
-                        r2 = (y - y0)**2 + (x - x0)**2
-                        p = np.exp(-(r2/d))
-                        if p > 0.2:
-                            p = 1
-                        full_sky_mask[y, x] = p
-                full_sky_masks[i] = full_sky_mask
+            x0, y0 = n_fft // 2, n_fft // 2
+            d = (n_fft / 2.7)**2
+            full_sky_mask = np.zeros_like(ift_scaled)
+            for y in range(full_sky_mask.shape[0]):
+                for x in range(full_sky_mask.shape[1]):
+                    r2 = (y - y0)**2 + (x - x0)**2
+                    p = np.exp(-(r2/d))
+                    if p > 0.2:
+                        p = 1
+                    full_sky_mask[y, x] = p
+            full_sky_masks[i] = full_sky_mask
 
         if mask_list[i] is None:
             print(f"Creating mask {i}")
@@ -326,7 +314,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             for s in good_source_lists[i]:
                 x0, y0 = s.get_px(n_fft)
-                d = s.deg_to_pix(n_fft, window_deg*1.5)**2
+                d = s.deg_to_pix(n_fft, window_deg)**2
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2
@@ -361,7 +349,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             plt.savefig(f"{output_directory}/mask_{i}.png")
             plt.close()
 
-        sn_score = (ift_scaled*full_sky_masks[i]).max()  # Peak signal to noise.
+        sn_score = (ift_scaled*full_sky_masks[i]).max()  # Peak signal to noise
         ret_std += -np.sqrt(sn_score)
 
 
@@ -452,7 +440,8 @@ def bh_callback(x, f, accepted):
         with open(f"{output_directory}/bh_basin_progress.json", "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
-        with open(f"{output_directory}/BH_basin_{f:5.3f}_{N_IT}.json", "w") as fp:
+        fname = f"BH_basin_{f:5.3f}_{N_IT}.json"
+        with open(os.path.join(output_directory, fname), "w") as fp:
             myParam.output(fp)
 
         for i, mask in enumerate(mask_list):
@@ -472,7 +461,8 @@ def bh_callback(x, f, accepted):
             plt.xlabel("East-West")
             plt.ylabel("North-South")
             plt.tight_layout()
-            plt.savefig(f"{output_directory}/mask_{i}_{f:5.3f}_{N_IT:05d}.png")
+            fname = f"mask_{-f:5.3f}_{N_IT:05d}_{i}.png"
+            plt.savefig(os.path.join(output_directory, fname))
             plt.close()
 
             plt.figure()
@@ -488,7 +478,8 @@ def bh_callback(x, f, accepted):
             plt.xlabel("East-West")
             plt.ylabel("North-South")
             plt.tight_layout()
-            plt.savefig(f"{output_directory}/full_sky_mask_{i}_{f:5.3f}_{N_IT:05d}.png")
+            fname = f"full_sky_mask_{-f:5.3f}_{N_IT:05d}_{i}.png"
+            plt.savefig(os.path.join(output_directory, fname))
             plt.close()
 
             plt.figure()
@@ -505,7 +496,8 @@ def bh_callback(x, f, accepted):
             plt.xlabel("East-West")
             plt.ylabel("North-South")
             plt.tight_layout()
-            plt.savefig(f"{output_directory}/{method}_{i}_{f:5.3f}_accepted_{N_IT:05d}.png")
+            fname = f"{method}_{f:5.3f}_accepted_{N_IT:05d}_{i}.png"
+            plt.savefig(os.path.join(output_directory, fname))
             plt.close()
 
 
@@ -735,60 +727,52 @@ def main():
 
     # Acquisition to get expected list of SV's
 
-    try:
-        with open(f"{data_dir}/gps_acquisition.json", "r") as fp:
-            full_acquisition_data = json.load(fp)
-            calculate = False
-    except:
-        calculate = True
+    fname = f"{data_dir}/gps_acquisition.json"
+    full_acquisition_data = get_gnss_data(measurements, fname)
+        # full_acquisition_data = []
+        # for i_m, m in enumerate(measurements):
+        #     cv, ts, src_list, prn_list, obs = m
+        #
+        #     acquisition_data = {}
+        #     num_antenna = obs.config.get_num_antenna()
+        #     sampling_freq = obs.get_sampling_rate()
+        #     for svinfo in prn_list:
+        #         prn_i, sv = svinfo
+        #         if (prn_i <= 32):
+        #             acquisition_data[f"{prn_i}"] = {}
+        #             print(f"acquiring {svinfo} obs={i_m}")
+        #             acquisition_data[f"{prn_i}"]['PRN'] = prn_i
+        #
+        #             strengths = []
+        #             phases = []
+        #             freqs = []
+        #             for i in tqdm(range(num_antenna)):
+        #                 ant_i = obs.get_antenna(i)
+        #                 mean_i = np.mean(ant_i)
+        #
+        #                 raw_data = ant_i - mean_i
+        #
+        #                 num_samples_per_ms = sampling_freq // 1000
+        #                 num_samples = int(2*num_samples_per_ms)
+        #
+        #                 [prn, strength, phase, freq] = acquire_full(
+        #                     raw_data,
+        #                     sampling_freq=sampling_freq,
+        #                     center_freq=4.092e6, searchBand=4000, PRN=prn_i,
+        #                     debug=False)
+        #
+        #                 strengths.append(float(np.round(strength, 3)))
+        #                 phases.append(float(np.round(phase, 3)))
+        #                 freqs.append(float(np.round(freq, 1)))
+        #
+        #             acquisition_data[f"{prn_i}"]['strengths'] = strengths
+        #             acquisition_data[f"{prn_i}"]['phases'] = phases
+        #             acquisition_data[f"{prn_i}"]['freqs'] = freqs
+        #             acquisition_data[f"{prn_i}"]['sv'] = sv
+        #
+        #             print(acquisition_data[f"{prn_i}"])
+        #     full_acquisition_data.append(acquisition_data)
 
-    if calculate:
-        full_acquisition_data = []
-        for i_m, m in enumerate(measurements):
-            cv, ts, src_list, prn_list, obs = m
-
-            acquisition_data = {}
-            num_antenna = obs.config.get_num_antenna()
-            sampling_freq = obs.get_sampling_rate()
-            for svinfo in prn_list:
-                prn_i, sv = svinfo
-                if (prn_i <= 32):
-                    acquisition_data[f"{prn_i}"] = {}
-                    print(f"acquiring {svinfo} obs={i_m}")
-                    acquisition_data[f"{prn_i}"]['PRN'] = prn_i
-
-                    strengths = []
-                    phases = []
-                    freqs = []
-                    for i in tqdm(range(num_antenna)):
-                        ant_i = obs.get_antenna(i)
-                        mean_i = np.mean(ant_i)
-
-                        raw_data = ant_i - mean_i
-
-                        num_samples_per_ms = sampling_freq // 1000
-                        num_samples = int(2*num_samples_per_ms)
-
-                        [prn, strength, phase, freq] = acquire_full(
-                            raw_data,
-                            sampling_freq=sampling_freq,
-                            center_freq=4.092e6, searchBand=4000, PRN=prn_i,
-                            debug=False)
-
-                        strengths.append(float(np.round(strength, 3)))
-                        phases.append(float(np.round(phase, 3)))
-                        freqs.append(float(np.round(freq, 1)))
-
-                    acquisition_data[f"{prn_i}"]['strengths'] = strengths
-                    acquisition_data[f"{prn_i}"]['phases'] = phases
-                    acquisition_data[f"{prn_i}"]['freqs'] = freqs
-                    acquisition_data[f"{prn_i}"]['sv'] = sv
-
-                    print(acquisition_data[f"{prn_i}"])
-            full_acquisition_data.append(acquisition_data)
-
-        with open(f"{data_dir}/gps_acquisition.json", "w") as fp:
-            json.dump(full_acquisition_data, fp, indent=4, separators=(",", ": "))
 
     # Use the standard deviation of the phases to determine whether the SV is visible.
     print("Finding visible satellites")
@@ -799,7 +783,7 @@ def main():
 
     good_satellites = []
 
-    for i, acquisition_data in enumerate(full_acquisition_data):
+    for i, acquisition_data in enumerate(full_acquisition_data['satellites']):
         n = 0
         good_satellites.append([])
         for d in acquisition_data:

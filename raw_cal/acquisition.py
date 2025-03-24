@@ -374,10 +374,11 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
     start = time.time()
     try:
-        #print("[%02d] best_xcorr=%f peak=%f sd=%f off=%f ratio=%f" % (PRN, best_xcorr, peak, signal_strength_sd, signal_strength_off, signal_strength_ratio))
         if ((signal_strength_off / 1.3) > 1.0):
-            [codephase_frac_o, frequency_o, peak_o] = optimize_fit(PRN, best_data, 1, samples_per_ms, sampling_period, fc, freq, frequency, center_freq, codephase)
-            #[codephase_frac_o, frequency_o, peak_o] = optimize_fit(PRN, x, epochs_available, samples_per_ms, sampling_period, fc, freq, frequency,center_freq, codephase)
+            [codephase_frac_o, frequency_o, peak_o] = \
+                optimize_fit(PRN, best_data, 1, samples_per_ms,
+                             sampling_period, fc, freq, frequency,
+                             center_freq, codephase)
             if (peak_o > best_xcorr):
                 codephase_frac = codephase_frac_o
                 frequency = frequency_o

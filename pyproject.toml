@@ -24,6 +24,7 @@ packages = [{include = "raw_cal"}]
 
 [tool.poetry.scripts]
 raw_calibrate = "raw_cal.tart_cal:main"
+pos_from_gps = "raw_cal.pos_from_gps:main"
 get_cal_data = "raw_cal.get_cal_data:main"
 
 [build-system]
