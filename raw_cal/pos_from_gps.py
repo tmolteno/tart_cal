@@ -7,99 +7,86 @@ from tqdm import tqdm
 import numpy as np
 
 from tart.operation import settings
-from tart.operation import observation
-from tart.imaging import elaz
-from tart.imaging import correlator
 
-from tart_tools import api_imaging
 
 from .acquisition import acquire
+from .calibration_data import load_cal_files
 
 ARGS = None
 
 
-def load_data_from_json(vis_json,
-                        src_json, 
-                        config, gains,
-                        phases,
-                        flag_list, el_threshold):
-    cv, ts = api_imaging.vis_calibrated(vis_json, config, gains, phases, flag_list)
-    src_list = elaz.from_json(src_json, el_threshold)
-    return cv, ts, src_list
-
-
-def load_raw_files(raw_files, calib_info, config):
-    global ARGS
-    # Load the raw observations
-    raw_obs = []
-    for raw_file in raw_files:
-        raw_obs.append(observation.Observation_Load(raw_file))
-
-    n = config.get_num_antenna()
-
-    gains = np.ones(n)
-    phase_offsets = np.zeros(n)
-    flag_list = []
-
-    masks = []
-    full_sky_mask = None
-    mask_sums = []
-    inv_masks = []
-    measurements = []
-    for d in calib_info["data"]:
-
-        vis_json, src_json = d
-        cv, ts, src_list = load_data_from_json(
-            vis_json,
-            src_json,
-            config,
-            gains,
-            phase_offsets,
-            flag_list,
-            el_threshold=ARGS.elevation,
-        )
-
-        prn_list = []
-        for sv in src_json:
-            prn = sv['name'].split('PRN ')
-            if len(prn) < 2:
-                continue
-
-            prn = prn[1].split(')')[0]
-
-            try:
-                prn_list.append((int(prn), sv))
-            except:
-                print(prn)
-
-        # Find best raw observation, with the closest timestamp
-        obs = None
-        best_dt = 9e99
-        print(f"Vis timestamp {cv.get_timestamp()}")
-        for o in raw_obs:
-            dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
-            print(f"   raw obs.ts = {o.timestamp} dt={dt}")
-            if dt < best_dt:
-                best_dt = dt
-                obs = o
-
-        if (best_dt > 72):
-            raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
-
-        corr = correlator.Correlator()
-        vis = corr.correlate(obs)
-        print(f"Timestamp: {vis.timestamp}")
-        print(f"Config: {vis.config.Dict}")
-
-        measurements.append([cv, ts, src_list, prn_list, obs])
-        masks.append(None)
-        inv_masks.append(None)
-        mask_sums.append(None)
-
-        if len(measurements) >= ARGS.num_meas:
-            break
-
-    return measurements
+# def load_raw_files(raw_files, calib_info, config):
+#     global ARGS
+#     # Load the raw observations
+#     raw_obs = []
+#     for raw_file in raw_files:
+#         raw_obs.append(observation.Observation_Load(raw_file))
+#
+#     n = config.get_num_antenna()
+#
+#     gains = np.ones(n)
+#     phase_offsets = np.zeros(n)
+#     flag_list = []
+#
+#     masks = []
+#     full_sky_mask = None
+#     mask_sums = []
+#     inv_masks = []
+#     measurements = []
+#     for d in calib_info["data"]:
+#
+#         vis_json, src_json = d
+#         cv, ts, src_list = load_data_from_json(
+#             vis_json,
+#             src_json,
+#             config,
+#             gains,
+#             phase_offsets,
+#             flag_list,
+#             el_threshold=ARGS.elevation,
+#         )
+#
+#         prn_list = []
+#         for sv in src_json:
+#             prn = sv['name'].split('PRN ')
+#             if len(prn) < 2:
+#                 continue
+#
+#             prn = prn[1].split(')')[0]
+#
+#             try:
+#                 prn_list.append((int(prn), sv))
+#             except:
+#                 print(prn)
+#
+#         # Find best raw observation, with the closest timestamp
+#         obs = None
+#         best_dt = 9e99
+#         print(f"Vis timestamp {cv.get_timestamp()}")
+#         for o in raw_obs:
+#             dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
+#             print(f"   raw obs.ts = {o.timestamp} dt={dt}")
+#             if dt < best_dt:
+#                 best_dt = dt
+#                 obs = o
+#
+#         if (best_dt > 72):
+#             raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
+#
+#         corr = correlator.Correlator()
+#         vis = corr.correlate(obs)
+#         print(f"Timestamp: {vis.timestamp}")
+#         print(f"Config: {vis.config.Dict}")
+#
+#         measurements.append([cv, ts, src_list, prn_list, obs])
+#         masks.append(None)
+#         inv_masks.append(None)
+#         mask_sums.append(None)
+#
+#         if len(measurements) >= ARGS.num_meas:
+#             break
+#
+#     return measurements
 
 
 def acquire_all_gnss(measurements):
@@ -269,7 +256,8 @@ def main():
     ant_pos = calib_info["ant_pos"]
     config = settings.from_api_json(info["info"], ant_pos)
 
-    measurements = load_raw_files(raw_files, calib_info, config)
+    measurements = load_cal_files(raw_files, calib_info,
+                                  config, elevation_threshold=ARGS.elevation)
 
     fname = f"{data_dir}/gps_acquisition.json"
 

@@ -34,7 +34,7 @@ def set_vis_mode(api):
     except Exception as e:
         logger.exception(e)
         logger.error("Error in setting vis_mode")
-    assert resp.
+
 
 def load_data(api, config):
     logger.info(f"Loading new data from {api.root}")
