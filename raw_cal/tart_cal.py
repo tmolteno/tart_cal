@@ -656,11 +656,7 @@ def main():
     logger.info(f"Phases {phase_offsets}")
 
     if ARGS.cold_start and ARGS.get_gains:
-        raise Exception("ERROR: Cannot Have both cold_start and get-gains specified")
-
-    if ARGS.cold_start:
-        gains = np.ones(len(gains_json["gain"]))
-        phase_offsets = np.zeros(len(gains_json["phase_offset"]))
+        raise Exception("ERROR: Cannot Have both cold-start and get-gains specified")
 
     config = settings.from_api_json(info["info"], ant_pos)
 
@@ -854,6 +850,10 @@ def main():
         print(f"Source List [{i}]")
         for s in good_src_list:
             print(f"    {s}")
+
+    if ARGS.cold_start:
+        test_gains = np.ones(len(gains_json["gain"]))
+        phase_offsets = np.zeros(len(gains_json["phase_offset"]))
 
     if ARGS.phases:
         print("Using PHASES")
