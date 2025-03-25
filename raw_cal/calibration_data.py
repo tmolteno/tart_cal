@@ -107,6 +107,60 @@ def load_cal_files(raw_files,
     return measurements
 
 
+def find_good_satellites(full_acquisition_data):
+
+    NANT = 24
+    best_acq = np.zeros(NANT)
+    sv_noise = np.zeros(NANT) + 0
+
+    best_score = -999
+
+    good_satellites = []
+    sv_noise = 0
+    n = 0
+    for i, acquisition_data in enumerate(full_acquisition_data['satellites']):
+        n_obs = 0
+        good_satellites.append([])
+        for d in acquisition_data:
+            acq = acquisition_data[d]
+            ph = np.array(acq['phases'])
+            st = np.array(acq['strengths'])
+
+            sv = acq['sv']
+
+            if sv['el'] < 15:
+                sv_noise += st
+
+            # mean_str = np.median(st)
+            good_ants = np.where(st > 0)
+            std_ph = np.std(ph[good_ants])
+
+            if (std_ph < 0.01):
+                good_satellites[i].append(sv)
+
+                good = np.where(st > 7.0)
+
+                best_acq[good] += st[good]
+                n_obs += 1
+            print(f"    Source: {int(d):02d}, stability: {std_ph:06.5f}, {np.mean(st):05.2f} {acq['sv']}")
+
+        if n_obs == 0:
+            raise RuntimeError(f"No satellites visible in obs[{i}]")
+
+        print("Good Satellites obs[{i}]")
+        for s in good_satellites:
+            print(f"    {s}")
+
+    n += n_obs
+
+    best_acq = best_acq / n
+    sv_noise = sv_noise / n
+    s_n = best_acq / sv_noise
+    print(f"Best acw {best_acq}")
+    print(f"Noise level {s_n}")
+    return good_satellites, best_acq
+
+
 def load_raw_data(raw_files):
     raw_obs = []
     for raw_file in raw_files:

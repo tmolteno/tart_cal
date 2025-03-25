@@ -21,20 +21,20 @@ WISDOM_DIR = '~/'
 
 
 def get_wisdom(fname):
-    write_wisdom = False
+    ret = False
     global WISDOM_DIR
     try:
         fullpath = os.path.join(WISDOM_DIR, fname)
         wisdom = pickle.load(fullpath, "rb")
         pyfftw.import_wisdom(wisdom)
     except:
-        write_wisdom = True
-        print('no wisdom file')
+        ret = True
+        print(f"No wisdom file {fullpath}")
 
-    return write_wisdom
+    return ret
 
 
-def write_wisdom(fname):
+def store_wisdom(fname):
     wisdom = pyfftw.export_wisdom()
     fullpath = os.path.join(WISDOM_DIR, fname)
     pickle.dump(wisdom, open(fullpath, "wb"))
@@ -42,7 +42,7 @@ def write_wisdom(fname):
 
 def generateCAcode(PRN):
     # A lookup table from lecture notes from the danish GPS center
-    code_delay_table = [5,6,7,8,17,18,139,140,141,251,252,254,255,256,257,258,469,470,471,472,473,474,509,512,513,514,515,516,859,860,861,862,863,950,947,948,950];
+    code_delay_table = [5,6,7,8,17,18,139,140,141,251,252,254,255,256,257,258,469,470,471,472,473,474,509,512,513,514,515,516,859,860,861,862,863,950,947,948,950]
     #    g2shift = circular shift of G2 maximal length code relative to the
     #    G1 maximal length code (must be an integer in the range 0:1023)
     g2shift = code_delay_table[PRN - 1]
@@ -56,9 +56,10 @@ def generateCAcode(PRN):
         saveBit = lfsr[2]*lfsr[9]
         lfsr = np.concatenate(([saveBit], lfsr[0:9]))
 
-    #--- Generate G2 code -----------------------------------------------------
-
-    #--- Initialize g2 output to speed up the function ---
+    '''
+        Generate G2 code
+        Initialize g2 output to speed up the function
+    '''
     g2 = np.empty(1023)
     #--- Load shift register ---
     lfsr = -1*np.ones(10)
@@ -66,14 +67,14 @@ def generateCAcode(PRN):
     #--- Generate all G2 signal chips based on the G2 feedback polynomial -----
     for i in range(1023):
         g2[i] = lfsr[9]
-        saveBit = lfsr[1]*lfsr[2]*lfsr[5]*lfsr[7]*lfsr[8]*lfsr[9];
+        saveBit = lfsr[1]*lfsr[2]*lfsr[5]*lfsr[7]*lfsr[8]*lfsr[9]
         lfsr = np.concatenate(([saveBit], lfsr[0:9]))
 
     #--- Shift G2 code --------------------------------------------------------
-    g2 = np.roll(g2, g2shift);
+    g2 = np.roll(g2, g2shift)
 
     #--- Form single sample C/A code by multiplying G1 and G2 -----------------
-    CAcode = -(g1 * g2);
+    CAcode = -(g1 * g2)
     return CAcode
 
 
@@ -182,7 +183,7 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
         print('setup took', time.time()-start)
 
     if write_wisdom:
-        write_wisdom("full_wisdom.wis")
+        store_wisdom("full_wisdom.wis")
 
     code_samples = np.arange(total_samples)
     # Generate a local signal sampled at the right sampling rate, and no phase change.
@@ -288,7 +289,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
         print('setup took', time.time()-start)
 
     if write_wisdom:
-        write_wisdom("wisdom.wis")
+        store_wisdom("wisdom.wis")
 
     code_samples = np.arange(samples_per_chunk)
     # Generate a local signal sampled at the right sampling rate, and no phase change.
