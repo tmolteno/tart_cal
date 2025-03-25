@@ -17,18 +17,18 @@ from scipy import optimize
 
 import pickle
 
-WISDOM_DIR = '~/'
+from pathlib import Path
 
 
 def get_wisdom(fname):
     ret = False
-    global WISDOM_DIR
     try:
-        fullpath = os.path.join(WISDOM_DIR, fname)
-        wisdom = pickle.load(fullpath, "rb")
+        fullpath = os.path.join(Path.home(), fname)
+        wisdom = pickle.load(open(fullpath, "rb"))
         pyfftw.import_wisdom(wisdom)
-    except:
+    except Exception as e:
         ret = True
+        print(e)
         print(f"No wisdom file {fullpath}")
 
     return ret
@@ -36,7 +36,7 @@ def get_wisdom(fname):
 
 def store_wisdom(fname):
     wisdom = pyfftw.export_wisdom()
-    fullpath = os.path.join(WISDOM_DIR, fname)
+    fullpath = os.path.join(Path.home(), fname)
     pickle.dump(wisdom, open(fullpath, "wb"))
 
 
