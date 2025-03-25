@@ -1,4 +1,6 @@
 import logging
+import re
+
 import numpy as np
 
 from tart_tools import api_imaging
@@ -10,9 +12,8 @@ from tart.imaging import correlator
 logger = logging.getLogger()
 
 
-def load_data_from_json(
-    vis_json, src_json, config, gains, phases, flag_list, el_threshold
-):
+def load_data_from_json(vis_json, src_json,
+                        config, gains, phases, flag_list, el_threshold):
     logger.info("Loading data from JSON")
     logger.info(f"    vis_json = {vis_json['timestamp']}")
     cv, ts = api_imaging.vis_calibrated(vis_json, config,
@@ -20,6 +21,27 @@ def load_data_from_json(
     logger.info(f"    ts = {ts}")
     _src_list = elaz.from_json(src_json, el_threshold)
     return cv, ts, _src_list
+
+
+def get_prn_from_name(name):
+    x = re.search(r"\(([A-Za-z0-9 /]*)\)", name)
+    prn_txt = x.group(1)
+
+    # Now (PRN 123)
+    x = re.search(r"[A-Za-z0-9 /]*PRN ([0-9]+)", prn_txt)
+    if x is not None:
+        prn_num_txt = x.group(1)
+        return int(prn_num_txt), 'GPS'
+
+    # Now (PRN E123)
+    x = re.search(r"[A-Za-z0-9 /]*PRN (E[0-9]+)", prn_txt)
+    if x is not None:
+        prn_num_txt = x.group(1)
+        print(f"    prn_num_txt={prn_num_txt}")
+        return int(prn_num_txt), 'GALILEO'
+
+    print(f"  SV: {name}")
+    return None, None
 
 
 def load_cal_files(raw_files,
@@ -54,14 +76,10 @@ def load_cal_files(raw_files,
 
         prn_list = []
         for sv in src_json:
-            prn = sv['name'].split('PRN ')
-            if len(prn) < 2:
-                continue
-
-            prn = prn[1].split(')')[0]
-
             try:
-                prn_list.append((int(prn), sv))
+                prn, gnss_type = get_prn_from_name(sv['name'])
+                if gnss_type == 'GPS':
+                    prn_list.append((prn, sv))
             except:
                 print(prn)
 

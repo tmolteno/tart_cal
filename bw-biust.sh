@@ -2,7 +2,7 @@
 while [ 0 ]
 do
         TARGET=bw-biust \
-        TART_CAL_ARGS="--get-gains --gains-phases --corr-only" \
+        TART_CAL_ARGS="--get-gains --phases --corr-only" \
         TART_GET_DATA=1 \
         TART_NCAL=3 \
         TART_CAL_INT=17 \
