@@ -82,10 +82,10 @@ def load_raw_files(raw_files, calib_info, config):
             if dt < best_dt:
                 best_dt = dt
                 obs = o
-        
+
         if (best_dt > 72):
             raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
-        
+
         corr = correlator.Correlator()
         vis = corr.correlate(obs)
         print(f"Timestamp: {vis.timestamp}")
@@ -138,7 +138,7 @@ def acquire_all_gnss(measurements):
                     [prn, strength, phase, freq] = \
                         acquire(raw_data[0:num_samples],
                                 sampling_freq=sampling_freq,
-                                center_freq=4.092e6, searchBand=6000,
+                                center_freq=4.092e6, searchBand=4000,
                                 PRN=prn_i, debug=False)
 
                     strengths.append(float(np.round(strength, 3)))
@@ -162,7 +162,8 @@ def get_gnss_data(measurements, fname):
     except:
         full_acquisition_data = acquire_all_gnss(measurements)
         with open(fname, "w") as fp:
-            json.dump(full_acquisition_data, fp, indent=4, separators=(",", ": "))
+            json.dump(full_acquisition_data, fp,
+                      indent=4, separators=(",", ": "))
     return full_acquisition_data
 
 
@@ -274,7 +275,7 @@ def main():
 
     full_acquisition_data = get_gnss_data(measurements, fname)
 
-    eqn = find_vis_satellites(fname, ARGS.elevation)
+    eqn = find_vis_satellites(full_acquisition_data, ARGS.elevation)
 
     # Now solve for the relative positions
     print(json.dumps(eqn, indent=4))

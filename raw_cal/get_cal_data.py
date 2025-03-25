@@ -33,8 +33,8 @@ def set_vis_mode(api):
         resp = api.post_with_token("mode/vis")
     except Exception as e:
         logger.exception(e)
-        logger.error(f"Error in setting vis_mode")
-
+        logger.error("Error in setting vis_mode")
+    assert resp.
 
 def load_data(api, config):
     logger.info(f"Loading new data from {api.root}")
@@ -145,21 +145,23 @@ def main():
         default=".",
         help="Output file directory.",
     )
-    PARSER.add_argument("--pw", default="password", type=str, help="API password")
+    PARSER.add_argument("--pw", default="password",
+                        type=str, help="API password")
     PARSER.add_argument(
-        "--n", type=int, default=5, help="Number of samples in the JSON data file."
+        "--n", type=int, default=5,
+        help="Number of samples in the JSON data file."
     )
     PARSER.add_argument(
         "--interval",
         type=int,
         default=5,
-        help="Interval (in minutes) between samples in the JSON data file.",
+        help="Interval (in minutes) between samples in the JSON data file."
     )
     PARSER.add_argument(
         "--catalog",
         required=False,
         default="https://tart.elec.ac.nz/catalog",
-        help="Catalog API URL.",
+        help="Catalog API URL."
     )
 
     ARGS = PARSER.parse_args()

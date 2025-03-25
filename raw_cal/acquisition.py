@@ -193,7 +193,7 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     epoch_data = x[0:total_samples]
     epoch_xcorr = acquire_aux_full(epoch_data, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints)
 
-    sn0 = epoch_xcorr.max()#/epoch_xcorr.std()
+    sn0 = epoch_xcorr.max()  # /epoch_xcorr.std()
     best_sn0 = sn0
     best_data = epoch_data
 
@@ -251,7 +251,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     write_wisdom = False
     try:
         import pickle
-        wisdom = pickle.load( open("wisdom.wis", "rb"))
+        wisdom = pickle.load(open("wisdom.wis", "rb"))
         pyfftw.import_wisdom(wisdom)
     except:
         write_wisdom = True
@@ -310,9 +310,11 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
         start_index = int(epoch*samples_per_ms) # int!    Changed by max
         stop_index = start_index + int(samples_per_ms) # int! Changed by max
         epoch_data = x[start_index:stop_index]
-        epoch_xcorr = acquire_aux(epoch_data, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints)
-        # epoch_xcorr2 = acquire_aux2D(epoch_data, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints)
-        # epoch_xcorr = epoch_xcorr2
+        if False:
+            epoch_xcorr = acquire_aux(epoch_data, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints)
+        else:
+            epoch_xcorr2 = acquire_aux2D(epoch_data, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints)
+            epoch_xcorr = epoch_xcorr2
         #print '1d vs 2D', (epoch_xcorr2-epoch_xcorr).__eq__(0).all()
 
         sn0 = epoch_xcorr.max()#/epoch_xcorr.std()
