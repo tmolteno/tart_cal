@@ -11,7 +11,33 @@ import time
 import numpy as np
 import pyfftw
 import scipy
+import os
+
 from scipy import optimize
+
+import pickle
+
+WISDOM_DIR = '~/'
+
+
+def get_wisdom(fname):
+    write_wisdom = False
+    global WISDOM_DIR
+    try:
+        fullpath = os.path.join(WISDOM_DIR, fname)
+        wisdom = pickle.load(fullpath, "rb")
+        pyfftw.import_wisdom(wisdom)
+    except:
+        write_wisdom = True
+        print('no wisdom file')
+
+    return write_wisdom
+
+
+def write_wisdom(fname):
+    wisdom = pyfftw.export_wisdom()
+    fullpath = os.path.join(WISDOM_DIR, fname)
+    pickle.dump(wisdom, open(fullpath, "wb"))
 
 
 def generateCAcode(PRN):
@@ -19,9 +45,9 @@ def generateCAcode(PRN):
     code_delay_table = [5,6,7,8,17,18,139,140,141,251,252,254,255,256,257,258,469,470,471,472,473,474,509,512,513,514,515,516,859,860,861,862,863,950,947,948,950];
     #    g2shift = circular shift of G2 maximal length code relative to the
     #    G1 maximal length code (must be an integer in the range 0:1023)
-    g2shift = code_delay_table[PRN - 1];
+    g2shift = code_delay_table[PRN - 1]
 
-    lfsr = -1*np.ones(10);
+    lfsr = -1*np.ones(10)
 
     g1 = np.empty(1023)
     #--- Generate all G1 signal chips based on the G1 feedback polynomial -----
@@ -35,7 +61,7 @@ def generateCAcode(PRN):
     #--- Initialize g2 output to speed up the function ---
     g2 = np.empty(1023)
     #--- Load shift register ---
-    lfsr = -1*np.ones(10);
+    lfsr = -1*np.ones(10)
 
     #--- Generate all G2 signal chips based on the G2 feedback polynomial -----
     for i in range(1023):
@@ -52,11 +78,11 @@ def generateCAcode(PRN):
 
 
 def gold(samples_per_code, PRN, epochs):
-    samples_per_chip = samples_per_code/1023.0;
-    CAcode = generateCAcode(PRN);
-    code_samples = np.arange(np.floor(samples_per_code*epochs));	# An array of sample indexes
-    code_indices = np.floor(code_samples / samples_per_chip).astype('int') % 1023;
-    code = CAcode[code_indices];
+    samples_per_chip = samples_per_code/1023.0
+    CAcode = generateCAcode(PRN)
+    code_samples = np.arange(np.floor(samples_per_code*epochs))	# An array of sample indexes
+    code_indices = np.floor(code_samples / samples_per_chip).astype('int') % 1023
+    code = CAcode[code_indices]
     return code
 
 
@@ -136,14 +162,7 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     global full_fft_in, full_fft_out, full_fft_machine
     global full_ifft_in, full_ifft_out, full_ifft_machine
 
-    write_wisdom = False
-    try:
-        import pickle
-        wisdom = pickle.load(open("wisdom_full.wis", "rb"))
-        pyfftw.import_wisdom(wisdom)
-    except:
-        write_wisdom = True
-        print('no wisdom file')
+    write_wisdom = get_wisdom("full_wisdom.wis")
 
     full_fft_in = pyfftw.empty_aligned(total_samples, dtype=dtype, n=align)
     full_fft_out = pyfftw.empty_aligned(total_samples, dtype=dtype, n=align)
@@ -163,9 +182,7 @@ def acquire_full(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
         print('setup took', time.time()-start)
 
     if write_wisdom:
-        wisdom = pyfftw.export_wisdom()
-        import pickle
-        pickle.dump(wisdom, open("wisdom_full.wis", "wb"))
+        write_wisdom("full_wisdom.wis")
 
     code_samples = np.arange(total_samples)
     # Generate a local signal sampled at the right sampling rate, and no phase change.
@@ -248,14 +265,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
     global fft_in, fft_out, fft_machine, ifft_in, ifft_out, ifft_machine
     global fft2d_in, fft2d_out, fft2d_machine, ifft2d_in, ifft2d_out, ifft2d_machine
 
-    write_wisdom = False
-    try:
-        import pickle
-        wisdom = pickle.load(open("wisdom.wis", "rb"))
-        pyfftw.import_wisdom(wisdom)
-    except:
-        write_wisdom = True
-        print('no wisdom file')
+    write_wisdom = get_wisdom("wisdom.wis")
 
     fft_in = pyfftw.empty_aligned(samples_per_chunk, dtype=dtype, n=align)
     fft_out = pyfftw.empty_aligned(samples_per_chunk, dtype=dtype, n=align)
@@ -278,9 +288,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
         print('setup took', time.time()-start)
 
     if write_wisdom:
-        wisdom = pyfftw.export_wisdom()
-        import pickle
-        pickle.dump( wisdom, open( "wisdom.wis", "wb" ) )
+        write_wisdom("wisdom.wis")
 
     code_samples = np.arange(samples_per_chunk)
     # Generate a local signal sampled at the right sampling rate, and no phase change.

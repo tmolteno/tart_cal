@@ -86,10 +86,7 @@ def load_cal_files(raw_files,
 
         measurements.append([cv, ts, src_list, prn_list, obs])
 
-        if len(measurements) >= ARGS.num_meas:
-            break
-
-    return measurements, masks, inv_masks,
+    return measurements
 
 
 def load_raw_data(raw_files):

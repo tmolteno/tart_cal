@@ -270,10 +270,6 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
     ant_idxs = np.arange(NANT)
     ift_scaled_list = []
-    if full_sky_masks is None:
-        full_sky_masks = [None for m in measurements]
-    if mask_list is None:
-        mask_list = [None for m in measurements]
 
     for i, m in enumerate(measurements):
         cv, ts, src_list, prn_list, obs = m
@@ -513,6 +509,7 @@ in_zone = None
 def main():
     global myParam, output_directory, N_IT, f_vs_iteration
     global bh_basin_progress, method
+    global full_sky_masks, mask_list, mask_sums, inv_masks
 
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to debug
@@ -650,113 +647,16 @@ def main():
     pointing_center = np.radians(ARGS.pointing)
 
     # Now deal with the measurements.
-
-    # Load the raw observations
-    # raw_obs = []
-    # for raw_file in raw_files:
-    #     raw_obs.append(observation.Observation_Load(raw_file))
-    #
-    # for d in calib_info["data"]:
-    #     vis_json, src_json = d
-    #     cv, ts, src_list = load_data_from_json(
-    #         vis_json,
-    #         src_json,
-    #         config,
-    #         gains,
-    #         phase_offsets,
-    #         flag_list,
-    #         el_threshold=ARGS.elevation,
-    #     )
-    #     print(f"ts = {ts}")
-    #     prn_list = []
-    #     for sv in src_json:
-    #         prn = sv['name'].split('PRN ')
-    #         if len(prn) < 2:
-    #             continue
-    #
-    #         prn = prn[1].split(')')[0]
-    #
-    #         try:
-    #             prn_list.append((int(prn), sv))
-    #         except:
-    #             logger.info(f"Ignoring: {prn}")
-    #
-    #     # Find best raw observation, with the closest timestamp
-    #     obs = None
-    #     best_dt = 9e99
-    #     logger.info(f"Vis timestamp {cv.get_timestamp()}")
-    #     for o in raw_obs:
-    #         dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
-    #         logger.info(f"   raw obs.ts = {o.timestamp} dt={dt}")
-    #         if dt < best_dt:
-    #             best_dt = dt
-    #             obs = o
-    #
-    #     if (best_dt > 100):
-    #         raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
-    #
-    #     corr = correlator.Correlator()
-    #     vis = corr.correlate(obs)
-    #     logger.info(f"Timestamp: {vis.timestamp}")
-    #     logger.info(f"Config: {vis.config.Dict}")
-    #
-    #     measurements.append([cv, ts, src_list, prn_list, obs])
-    #     inv_masks.append(None)
-    #     mask_sums.append(None)
-    #
-    #     if len(measurements) >= ARGS.num_meas:
-    #         break
     measurements = load_cal_files(raw_files, calib_info,
                                   config, elevation_threshold=ARGS.elevation)
+    inv_masks = [None] * len(measurements)
+    mask_sums = [None] * len(measurements)
+    mask_list = [None] * len(measurements)
+    full_sky_masks = [None] * len(measurements)
 
     # Acquisition to get expected list of SV's
-
     fname = f"{data_dir}/gps_acquisition.json"
     full_acquisition_data = get_gnss_data(measurements, fname)
-        # full_acquisition_data = []
-        # for i_m, m in enumerate(measurements):
-        #     cv, ts, src_list, prn_list, obs = m
-        #
-        #     acquisition_data = {}
-        #     num_antenna = obs.config.get_num_antenna()
-        #     sampling_freq = obs.get_sampling_rate()
-        #     for svinfo in prn_list:
-        #         prn_i, sv = svinfo
-        #         if (prn_i <= 32):
-        #             acquisition_data[f"{prn_i}"] = {}
-        #             print(f"acquiring {svinfo} obs={i_m}")
-        #             acquisition_data[f"{prn_i}"]['PRN'] = prn_i
-        #
-        #             strengths = []
-        #             phases = []
-        #             freqs = []
-        #             for i in tqdm(range(num_antenna)):
-        #                 ant_i = obs.get_antenna(i)
-        #                 mean_i = np.mean(ant_i)
-        #
-        #                 raw_data = ant_i - mean_i
-        #
-        #                 num_samples_per_ms = sampling_freq // 1000
-        #                 num_samples = int(2*num_samples_per_ms)
-        #
-        #                 [prn, strength, phase, freq] = acquire_full(
-        #                     raw_data,
-        #                     sampling_freq=sampling_freq,
-        #                     center_freq=4.092e6, searchBand=4000, PRN=prn_i,
-        #                     debug=False)
-        #
-        #                 strengths.append(float(np.round(strength, 3)))
-        #                 phases.append(float(np.round(phase, 3)))
-        #                 freqs.append(float(np.round(freq, 1)))
-        #
-        #             acquisition_data[f"{prn_i}"]['strengths'] = strengths
-        #             acquisition_data[f"{prn_i}"]['phases'] = phases
-        #             acquisition_data[f"{prn_i}"]['freqs'] = freqs
-        #             acquisition_data[f"{prn_i}"]['sv'] = sv
-        #
-        #             print(acquisition_data[f"{prn_i}"])
-        #     full_acquisition_data.append(acquisition_data)
-
 
     # Use the standard deviation of the phases to determine whether the SV is visible.
     print("Finding visible satellites")
@@ -814,8 +714,8 @@ def main():
 
     for i, m in enumerate(measurements):
         good_src_list = []
+        cv, ts, src_list, prn_list, obs = m
         if ARGS.corr_only:
-            cv, ts, src_list, prn_list, obs = m
             print(f"Source List[{i}]:")
             for s in src_list:
                 good = False
