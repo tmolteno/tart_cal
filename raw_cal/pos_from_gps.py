@@ -12,8 +12,6 @@ from tart.operation import settings
 from .acquisition import acquire_full
 from .calibration_data import load_cal_files
 
-ARGS = None
-
 
 def acquire_all_gnss(measurements):
     full_acquisition_data = {}
@@ -50,9 +48,9 @@ def acquire_all_gnss(measurements):
                     num_samples = int(2*num_samples_per_ms)
                     [prn, strength, phase, freq] = \
                         acquire_full(raw_data[0:num_samples],
-                                sampling_freq=sampling_freq,
-                                center_freq=4.092e6, searchBand=4000,
-                                PRN=prn_i, debug=False)
+                                     sampling_freq=sampling_freq,
+                                     center_freq=4.092e6, searchBand=4000,
+                                     PRN=prn_i, debug=False)
 
                     strengths.append(float(np.round(strength, 3)))
                     phases.append(float(phase))

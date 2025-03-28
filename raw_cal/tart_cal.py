@@ -279,9 +279,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         api_imaging.rotate_vis(np.degrees(rot_rad), cv, original_positions)
 
         n_bin = 2 ** 8
-        cal_ift, cal_extent, n_fft, bin_width = api_imaging.image_from_calibrated_vis(
-            cv, nw=n_bin / 4, num_bin=n_bin
-        )
+        cal_ift, cal_extent, n_fft, bin_width = \
+            api_imaging.image_from_calibrated_vis(cv, nw=n_bin / 4,
+                                                  num_bin=n_bin)
 
         abs_ift = np.abs(cal_ift)
         ift_std = np.median(abs_ift)
@@ -307,7 +307,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             for s in good_source_lists[i]:
                 x0, y0 = s.get_px(n_fft)
-                d = s.deg_to_pix(n_fft, window_deg)**2
+                d = 2*s.deg_to_pix(n_fft, window_deg)**2
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2
@@ -342,9 +342,10 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             plt.savefig(f"{output_directory}/mask_{i}.png")
             plt.close()
 
-        sn_score = (ift_scaled*full_sky_masks[i]).max()  # Peak signal to noise
-        ret_std += -np.sqrt(sn_score)
-
+        masked_sky = (ift_scaled*full_sky_masks[i])
+        max_sky = masked_sky.max()
+        sn_score = max_sky / np.mean(masked_sky)  # Peak signal to noise
+        ret_std += -sn_score
 
         #
         # Clip the image at 0.5 maximum, and then calculated a score
@@ -352,7 +353,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         #
         # This is an attempt to avoid bright unknown sources from skewing
         # the phases towards it.
-        masked_img = mask_list[i]*np.clip(ift_scaled, a_min=0, a_max=sn_score/2)
+        masked_img = mask_list[i]*np.clip(masked_sky, a_min=0, a_max=max_sky/2)
         in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         # outmask_img = inv_masks[i]*ift_scaled
         # out_zone = np.median(outmask_img)
@@ -373,7 +374,6 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         n_fft,
         bin_width
     )
-
 
 
 def calc_score(

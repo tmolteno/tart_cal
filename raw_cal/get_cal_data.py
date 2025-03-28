@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 #
 # Get Calibration Data from the TART telescope

@@ -132,10 +132,10 @@ def find_good_satellites(full_acquisition_data):
                 sv_noise += st
 
             # mean_str = np.median(st)
-            good_ants = np.where(st > 0)
+            good_ants = np.where(st > 7)
             std_ph = np.std(ph[good_ants])
 
-            if (std_ph < 0.01):
+            if (np.mean(st) > 7) and (std_ph < 0.01):
                 good_satellites[i].append(sv)
 
                 good = np.where(st > 7.0)
