@@ -25,6 +25,10 @@ def load_data_from_json(vis_json, src_json,
 
 def get_prn_from_name(name):
     x = re.search(r"\(([A-Za-z0-9 /]*)\)", name)
+    if x is None:
+        print(f"PARSE ERROR: get_prn_from_name({name})")
+        return None, None
+
     prn_txt = x.group(1)
 
     # Now (PRN 123)

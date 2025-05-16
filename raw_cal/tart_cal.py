@@ -661,55 +661,21 @@ def main():
     # Use the standard deviation of the phases to determine whether the SV is visible.
     print("Finding visible satellites")
     good_satellites, best_acq = find_good_satellites(full_acquisition_data)
-    #
-    # best_acq = np.zeros(NANT)
-    # sv_noise = np.zeros(NANT) + 0
-    # best_score = -999
-    #
-    # good_satellites = []
-    #
-    # for i, acquisition_data in enumerate(full_acquisition_data['satellites']):
-    #     n = 0
-    #     good_satellites.append([])
-    #     for d in acquisition_data:
-    #         acq = acquisition_data[d]
-    #         ph = np.array(acq['phases'])
-    #         st = np.array(acq['strengths'])
-    #
-    #         sv = acq['sv']
-    #
-    #         if sv['el'] < 15:
-    #             sv_noise += st
-    #
-    #         mean_str = np.median(st)
-    #         stdev_ph = np.stdev(ph)
-    #         if (mean_str > 7.0):
-    #             good_satellites[i].append(sv)
-    #
-    #             good = np.where(st > 7.0)
-    #
-    #             best_acq[good] += st[good]
-    #             n = n + 1
-    #         print(f"    Source: {int(d):02d}, stability: {np.std(ph):06.5f}, {np.mean(st):05.2f} {acq['sv']}")
-    #
-    #     if n == 0:
-    #         raise RuntimeError(f"No satellites visible in obs[{i}]")
-    #
-    #     print("Good Satellites obs[{i}]")
-    #     for s in good_satellites:
-    #         print(f"    {s}")
-    #
-    # best_acq = best_acq / n
-    # sv_noise = sv_noise / n
-    # s_n = best_acq / sv_noise
-    # print(f"Best acw {best_acq}")
-    # print(f"Noise level {s_n}")
 
-    test_gains = best_acq / best_acq[0]
+    # Find the best SV and record its index.
+    best_sv = np.argmax(best_acq)
+
+    test_gains = best_acq / best_acq[best_sv]
+    print(f"test_gains = {test_gains}")
+    # test_gains[test_gains == 0] = -1
+    # test_gains[test_gains > 3] = -1
+
     test_gains = 1.0 / (test_gains)
+
+    test_gains[test_gains < 0] = 0
+
     # These factors would make all SV appear equal brightness.
     # test_gains = np.ones(NANT)
-    test_gains[best_acq < 0.1] = 0
     print(f"Estimated gains: {test_gains}")
 
     # Now remove satellites from the catalog that we can't see.
