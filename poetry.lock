@@ -1281,14 +1281,14 @@ python-dateutil = "*"
 
 [[package]]
 name = "tart-tools"
-version = "1.2.0b5"
+version = "1.2.2"
 description = "Transient Array Radio Telescope Command Line Tools"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "tart_tools-1.2.0b5-py3-none-any.whl", hash = "sha256:b9c4fef468075f961611aeea6b4565f5b72433e1e93244e5d09faf84104404d8"},
-    {file = "tart_tools-1.2.0b5.tar.gz", hash = "sha256:d54e97c2c86b03a0b1d8018e57499d45d49dc43d8d048db846825ca5da6f53f4"},
+    {file = "tart_tools-1.2.2-py3-none-any.whl", hash = "sha256:f600c53b62494dd2e01310593b506ec7defccbe0609664772371a32ab37cc7b0"},
+    {file = "tart_tools-1.2.2.tar.gz", hash = "sha256:d4aded8c54565d112992af077176965428dece5f8bc24f55e8e4d4a885f60534"},
 ]
 
 [package.dependencies]
@@ -1356,4 +1356,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "6f39c4c7f5c4f6648507bf67e1541c50150404f5819ce35a2da65eeb72f06261"
+content-hash = "348e9629fad75035b082543c32b936e0707c3c70c7f82b720cbda8cec4bff249"

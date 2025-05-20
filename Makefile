@@ -20,7 +20,7 @@ testd:
 		-e TART_NCAL="1" \
 		-e TART_CAL_INT="20" \
 		-e TART_CAL_ITERATIONS=100 \
-		-e TART_CAL_ELEVATION=10 \
+		-e TART_CAL_ELEVATION=20 \
 		-e TART_CAL_POINTING=0 \
 		-e TART_CAL_ARGS="--phases --corr-only" \
 		-e TART_LOGIN_PW=sharkbait \

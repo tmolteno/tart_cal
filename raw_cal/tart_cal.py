@@ -667,12 +667,11 @@ def main():
 
     test_gains = best_acq / best_acq[best_sv]
     print(f"test_gains = {test_gains}")
-    # test_gains[test_gains == 0] = -1
-    # test_gains[test_gains > 3] = -1
+    test_gains[test_gains < 0.1] = 0.1
 
     test_gains = 1.0 / (test_gains)
 
-    test_gains[test_gains < 0] = 0
+    test_gains[test_gains > 3] = 3
 
     # These factors would make all SV appear equal brightness.
     # test_gains = np.ones(NANT)
