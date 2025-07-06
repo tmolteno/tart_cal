@@ -19,6 +19,7 @@ import numpy as np
 from tart.operation import settings
 from tart.imaging import visibility
 from tart.imaging import calibration
+from tart.util import utc
 
 from tart_tools import api_handler
 from tart_tools import api_imaging
@@ -44,7 +45,7 @@ def load_data(api, config):
     logger.info(f"Vis Json timestamp {vis_json['timestamp']}")
     ts = api_imaging.vis_json_timestamp(vis_json)
     logger.info(f"Timestamp {ts}")
-    logger.info(f"utcnow = {datetime.datetime.now(datetime.UTC)}")
+    logger.info(f"utcnow = {utc.now()}")
     logger.info(f"URL ts {ts.isoformat()}")
 
     cat_url = api.catalog_url(lon=config.get_lon(),
@@ -189,4 +190,3 @@ def main():
 
     with open(f"{ARGS.dir}/{ARGS.file}", "w") as fp:
         json.dump(ret, fp, indent=4, separators=(",", ": "))
-
