@@ -46,11 +46,11 @@ def load_data(api, config):
     ts = api_imaging.vis_json_timestamp(vis_json)
     logger.info(f"Timestamp {ts}")
     logger.info(f"utcnow = {utc.now()}")
-    logger.info(f"URL ts {ts.isoformat()}")
+    logger.info(f"URL ts {utc.to_string(ts)}")
 
     cat_url = api.catalog_url(lon=config.get_lon(),
                               lat=config.get_lat(),
-                              datestr=ts.isoformat())
+                              datestr=utc.to_string(ts))
     logger.info(f"Getting catalog from {cat_url}")
     src_json = api.get_url(cat_url)
     logger.info("Loading Complete")
