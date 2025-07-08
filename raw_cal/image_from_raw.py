@@ -28,12 +28,12 @@ from tart_tools import api_handler
 
 '''
     Create an image from raw (hdf5) data downloaded from the TART telescope
-    
+
     Step 1: Download raw data (
         tart_set_mode --raw --pw <password>
         tart_download_data --raw --n 1 --pw <password>
         tart_set_mode --vis --pw <password>
-        
+
     Step 2: Run this file
         python3 image_from_raw.py --file ./data_2022-06-21_01_57_06.161084.hdf
 
@@ -43,26 +43,26 @@ if __name__ == '__main__':
     PARSER.add_argument('--file', required=True, help="The raw data data file ")
 
     ARGS = PARSER.parse_args()
-    
+
     #############################################################################################################
     #
-    #                                    Step 0. Use the API to get information 
+    #                                    Step 0. Use the API to get information
     #
     #############################################################################################################
-    API_SERVER = 'https://tart.elec.ac.nz/signal'
+    API_SERVER = 'https://api.elec.ac.nz/tart/za-rhodes'
     api = api_handler.APIhandler(API_SERVER)
-    
+
     ant_pos = np.array(api.get('imaging/antenna_positions'))
-    
+
     calibration_gains = api.get('calibration/gain')
     gains = np.array(calibration_gains['gain'])
     phases = np.array(calibration_gains['phase_offset'])
 
 
-    
+
     #############################################################################################################
     #
-    #                                    Step 1. Correlate the data 
+    #                                    Step 1. Correlate the data
     #
     #############################################################################################################
     # Load the Observation file
@@ -74,14 +74,14 @@ if __name__ == '__main__':
     print("Config: {}".format(vis.config.Dict))
     print("Baselines: {}".format(vis.baselines))
     print("visibilities: {}".format(vis.v))
-    
+
     baselines = np.asarray(vis.baselines)
     v_arr = np.asarray(vis.v)
 
 
     #############################################################################################################
     #
-    #                                    Step 2. Apply the calibration gains and phases 
+    #                                    Step 2. Apply the calibration gains and phases
     #
     #############################################################################################################
     ## Multiply the visiblities by the complex gains
