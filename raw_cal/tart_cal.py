@@ -306,7 +306,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             mask = np.zeros_like(ift_scaled)
 
             for s in good_source_lists[i]:
-                x0, y0 = s.get_px(n_fft)
+                y0, x0 = s.get_px(n_fft)
                 d = 2*s.deg_to_pix(n_fft, window_deg)**2
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):

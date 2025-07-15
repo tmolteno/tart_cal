@@ -9,16 +9,12 @@ import time
 import json
 import logging
 import os
-import datetime
-import dateutil
 
 import urllib.parse
 
 import numpy as np
 
 from tart.operation import settings
-from tart.imaging import visibility
-from tart.imaging import calibration
 from tart.util import utc
 
 from tart_tools import api_handler
@@ -81,7 +77,10 @@ def get_raw_data(api, config, vis_json, directory='.'):
             best_dt = 999999
             entry = None
             for e in resp_raw:
-                e_ts = dateutil.parser.parse(e['timestamp'])
+                ts_string = e['timestamp']
+                ts_string = ts_string.replace("+00Z", " GMT")  # Remove old +00Z format
+                e_ts = utc.from_string(ts_string)
+
                 dt = np.abs((e_ts - ts).total_seconds())
                 logger.info(f"   raw obs.ts = {e_ts} dt={dt}")
                 if dt < best_dt:
