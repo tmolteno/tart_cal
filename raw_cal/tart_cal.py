@@ -8,16 +8,18 @@
     phases of the 24 antennas
     of the telescope.
 """
+import os
+import logging
+import json
+import glob
+
 import matplotlib
 
 import matplotlib.pyplot as plt
 
 import argparse
 import numpy as np
-import os
-import logging
 from scipy import optimize
-import json
 
 from copy import deepcopy
 
@@ -27,10 +29,7 @@ from .calibration_data import load_cal_files, find_good_satellites
 from tart.operation import settings
 
 from tart.imaging import elaz
-
-from tart_tools import api_imaging
-
-import glob
+from tart.imaging import imaging
 
 
 matplotlib.use("agg")
@@ -40,8 +39,6 @@ triplets = None
 ij_index = None
 jk_index = None
 ik_index = None
-
-
 
 
 NANT = 24
@@ -276,12 +273,12 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
         cv.set_phase_offset(ant_idxs, phase_offsets)
         cv.set_gain(ant_idxs, gains)
-        api_imaging.rotate_vis(np.degrees(rot_rad), cv, original_positions)
+        imaging.rotate_vis(np.degrees(rot_rad), cv, original_positions)
 
         n_bin = 2 ** 8
         cal_ift, cal_extent, n_fft, bin_width = \
-            api_imaging.image_from_calibrated_vis(cv, nw=n_bin / 4,
-                                                  num_bin=n_bin)
+            imaging.image_from_calibrated_vis(cv, nw=n_bin / 4,
+                                              num_bin=n_bin)
 
         abs_ift = np.abs(cal_ift)
         ift_std = np.median(abs_ift)
