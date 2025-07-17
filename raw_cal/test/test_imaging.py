@@ -20,7 +20,7 @@ class TestImaging(unittest.TestCase):
         return img
 
     def random_ant_pos(self, n_ant):
-        ant_pos = np.random.uniform(-5, 5, size=(n_ant, 3))
+        ant_pos = np.random.uniform(-2, 2, size=(n_ant, 3))
         ant_pos[:, 2] = 0.0
         return ant_pos
 
@@ -49,21 +49,18 @@ class TestImaging(unittest.TestCase):
         self.assertEqual(baselines.shape[0], n_ant*(n_ant-1) / 2)
         self.assertEqual(baselines.shape[1], 3)
 
-        # fig, ax = plt.subplots(nrows=1, ncols=2)
-        # ax[0].scatter(ant_pos[:, 0], ant_pos[:, 1])
-        # ax[1].scatter(baselines[:, 0], baselines[:, 1])
-        # plt.show()
-
     def test_random_up(self):
 
-        larray = np.random.uniform(-1, 1, size=100)
-        marray = np.random.uniform(-1, 1, size=100)
+        n_points = 10
+        larray = np.random.uniform(-1, 1, size=n_points)
+        marray = np.random.uniform(-1, 1, size=n_points)
+        powers = np.random.uniform(1, 10, size=n_points)
 
-        imsize = 256
+        imsize = 128
         img = tart_imaging.Image.zeros(imsize)
 
-        for i in range(10):
-            img.add_point(larray[i], marray[i], power=10)
+        for i in range(n_points):
+            img.add_point(larray[i], marray[i], power=powers[i])
 
         random_pix = np.abs(img.pixels.numpy())
         random_pix = random_pix / np.max(random_pix)
@@ -76,33 +73,36 @@ class TestImaging(unittest.TestCase):
         n_ant = 24
         ant_pos = self.random_ant_pos(n_ant)
 
-        bl = tart_imaging.get_baselines(ant_pos)
-
-        uvpix = tart_imaging.get_uv_coordinate(bl, imsize, wavelength=0.21)
-        print(uvpix)
         uvmasked = tart_imaging.Image.zeros(imsize)
+
+        bl = tart_imaging.get_baselines(ant_pos)
+        uvpix = tart_imaging.get_uv_coordinate(bl, imsize, wavelength=0.21)
+
+        for u, v in uvpix:
+            uvmasked.pixels[u, v] = uv.pixels[u, v]
+
+        uvpix = tart_imaging.get_uv_coordinate(-bl, imsize, wavelength=0.21)
+
         for u, v in uvpix:
             uvmasked.pixels[u, v] = uv.pixels[u, v]
 
         masked_pix = np.abs(uvmasked.pixels.numpy())
         masked_pix = masked_pix / np.max(masked_pix)
 
-
         im2 = tart_imaging.get_image(uvmasked)
         recovered = np.abs(im2.pixels.numpy())
         recovered = recovered / np.max(recovered)
 
-
-        fig, ax = plt.subplots(nrows=1, ncols=4)
-        im = ax[0].imshow(random_pix)
+        fig, ax = plt.subplots(nrows=2, ncols=2)
+        im = ax[0,0].imshow(random_pix)
         cbar = plt.colorbar(im)
-        im = ax[1].imshow(uv_pix)
-        cbar = plt.colorbar(im)
-
-        im = ax[2].imshow(masked_pix)
+        im = ax[0,1].imshow(uv_pix)
         cbar = plt.colorbar(im)
 
-        im = ax[3].imshow(recovered)
+        im = ax[1,0].imshow(masked_pix)
+        cbar = plt.colorbar(im)
+
+        im = ax[1,1].imshow(recovered)
         cbar = plt.colorbar(im)
         plt.show()
 
