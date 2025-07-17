@@ -1,16 +1,12 @@
 import argparse
-import json
 import glob
+import json
 
 import numpy as np
-
-from tart.operation import settings
-from tart.operation import observation
-from tart.imaging import correlator
-
-from tart_cal import load_data_from_json
 from acquisition import acquire
-
+from tart.imaging import correlator
+from tart.operation import observation, settings
+from tart_cal import load_data_from_json
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -30,7 +26,7 @@ if __name__ == "__main__":
     raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
 
     print(json_files)
-    with open(json_files[0], "r") as json_file:
+    with open(json_files[0]) as json_file:
         calib_info = json.load(json_file)
 
     info = calib_info["info"]
@@ -46,7 +42,7 @@ if __name__ == "__main__":
     mask_sums = []
     inv_masks = []
     measurements = []
-    for d, raw_file in zip(calib_info["data"], raw_files):
+    for d, raw_file in zip(calib_info["data"], raw_files, strict=False):
 
         vis_json, src_json = d
         cv, ts, src_list = load_data_from_json(
@@ -70,7 +66,6 @@ if __name__ == "__main__":
             try:
                 prn_list.append((int(prn), sv))
             except:
-                pass
                 print(f"PRN {prn} not an integer")
 
         # Load the data here from the raw file
@@ -88,7 +83,7 @@ if __name__ == "__main__":
         mask_sums.append(None)
 
     try:
-        with open(f"{data_dir}/gps_acquisition.json", "r") as fp:
+        with open(f"{data_dir}/gps_acquisition.json") as fp:
             full_acquisition_data = json.load(fp)
     except:
         full_acquisition_data = []

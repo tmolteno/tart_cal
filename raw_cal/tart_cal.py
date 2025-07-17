@@ -8,29 +8,22 @@
     phases of the 24 antennas
     of the telescope.
 """
-import os
-import logging
-import json
-import glob
-
-import matplotlib
-
-import matplotlib.pyplot as plt
-
 import argparse
-import numpy as np
-from scipy import optimize
-
+import glob
+import json
+import logging
+import os
 from copy import deepcopy
 
-from .pos_from_gps import get_gnss_data
-from .calibration_data import load_cal_files, find_good_satellites
-
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import optimize
+from tart.imaging import elaz, imaging
 from tart.operation import settings
 
-from tart.imaging import elaz
-from tart.imaging import imaging
-
+from .calibration_data import find_good_satellites, load_cal_files
+from .pos_from_gps import get_gnss_data
 
 matplotlib.use("agg")
 logger = logging.getLogger()
@@ -396,7 +389,7 @@ def calc_score(
     return ret
 
 
-class MyTakeStep(object):
+class MyTakeStep:
     def __init__(self, stepsize, pointing_rad):
         self.stepsize = stepsize
         self.pointing_rad = pointing_rad
@@ -481,7 +474,7 @@ def bh_callback(x, f, accepted):
 
 
 def de_callback(xk, convergence):
-    print("DE at {} conv={}".format(xk, convergence))
+    print(f"DE at {xk} conv={convergence}")
     output_param(xk)
 
 
@@ -608,7 +601,7 @@ def main():
     raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
 
     print(json_files)
-    with open(json_files[0], "r") as json_file:
+    with open(json_files[0]) as json_file:
         calib_info = json.load(json_file)
 
     info = calib_info["info"]
@@ -814,7 +807,7 @@ def main():
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
         )
-        with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
+        with open(f"{output_directory}/bh_basin_progress.json", "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
     print(f"Success = {ret}")

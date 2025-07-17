@@ -1,12 +1,10 @@
 import argparse
-import json
 import glob
+import json
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from tart.operation import settings
-
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(
@@ -36,7 +34,7 @@ if __name__=="__main__":
     data_dir = ARGS.data
     json_files = [f for f in glob.glob(f"{data_dir}/cal*.json")]
 
-    with open(json_files[0], "r") as json_file:
+    with open(json_files[0]) as json_file:
         calib_info = json.load(json_file)
 
     info = calib_info["info"]
@@ -49,14 +47,14 @@ if __name__=="__main__":
     fig, ax = plt.subplots(figsize=(5,5))
 
     ax.plot(x,y,'.', label='Original positions')
-    
-    for i in range(0,len(x)):
+
+    for i in range(len(x)):
         ax.text(x[i],y[i],f"{i}")
 
     ax.set_xlim([-2.5,2.5])
     ax.set_ylim((-2.5,2.5))
     rot_deg = ARGS.rot
-    
+
     print(ant_pos)
     new_positions = settings.rotate_location(
         rot_deg, np.array(ant_pos).T
@@ -68,9 +66,9 @@ if __name__=="__main__":
     print("New Positions")
     x = new_pos.T[0]
     y = new_pos.T[1]
-    for i in range(0, len(x)):
+    for i in range(len(x)):
         print(f"Ant {i}: {x[i]:6.3f}, {y[i]:6.3f}, r={np.sqrt(x[i]**2 + y[i]**2):4.3f}")
-    
+
     x = new_pos.T[0]
     y = new_pos.T[1]
     ax.plot(x,y,'o', label=f"Rotated {rot_deg} deg", alpha=0.5)

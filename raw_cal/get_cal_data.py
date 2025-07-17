@@ -5,20 +5,16 @@
 # Copyright (c) Tim Molteno 2017-2022.
 
 import argparse
-import time
 import json
 import logging
 import os
-
+import time
 import urllib.parse
 
 import numpy as np
-
 from tart.operation import settings
 from tart.util import utc
-
-from tart_tools import api_handler
-from tart_tools import api_imaging
+from tart_tools import api_handler, api_imaging
 
 logger = logging.getLogger()
 
@@ -183,7 +179,7 @@ def main():
         get_raw_data(api, config, vis_json, ARGS.dir)
         data.append([vis_json, src_json])
         if i != ARGS.n - 1:
-            logger.info("Sleeping {} minutes".format(ARGS.interval))
+            logger.info(f"Sleeping {ARGS.interval} minutes")
             time.sleep(ARGS.interval * 60)
     ret["data"] = data
 

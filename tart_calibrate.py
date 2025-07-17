@@ -9,21 +9,16 @@
 """
 # import matplotlib
 # matplotlib.use("agg")
-import matplotlib.pyplot as plt
-
 import argparse
 import json
-
-import numpy as np
-
-from scipy import optimize
 from copy import deepcopy
 
-from tart.operation import settings
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import optimize
 from tart.imaging import elaz
-
-from tart_tools import api_imaging
-from tart_tools import api_handler
+from tart.operation import settings
+from tart_tools import api_handler, api_imaging
 
 triplets = None
 ij_index = None
@@ -189,7 +184,7 @@ def calc_score(
         plt.xlabel("East-West")
         plt.ylabel("North-South")
         plt.tight_layout()
-        plt.savefig("{}/opt_slice_{:05d}.png".format(output_directory, N_IT))
+        plt.savefig(f"{output_directory}/opt_slice_{N_IT:05d}.png")
         plt.close()
 
         plt.figure()
@@ -207,16 +202,14 @@ def calc_score(
         plt.ylabel("North-South")
         plt.tight_layout()
         plt.savefig(
-            "{}/{}_{:5.3f}_opt_full_{:05d}.png".format(
-                output_directory, method, ret, N_IT
-            )
+            f"{output_directory}/{method}_{ret:5.3f}_opt_full_{N_IT:05d}.png"
         )
         plt.close()
     N_IT += 1
     return ret
 
 
-class MyTakeStep(object):
+class MyTakeStep:
     def __init__(self, stepsize=0.5):
         self.stepsize = stepsize
 
@@ -229,7 +222,7 @@ class MyTakeStep(object):
 
 def bh_callback(x, f, accepted):
     global output_directory, bh_basin_progress, N_IT
-    print("BH f={} accepted {}".format(f, int(accepted)))
+    print(f"BH f={f} accepted {int(accepted)}")
     if accepted:
         output_param(x)
         bh_basin_progress.append([N_IT, float(f)])
@@ -243,7 +236,7 @@ def bh_callback(x, f, accepted):
 
 
 def de_callback(xk, convergence):
-    print("DE at {} conv={}".format(xk, convergence))
+    print(f"DE at {xk} conv={convergence}")
     output_param(xk)
 
 
@@ -306,7 +299,7 @@ if __name__ == "__main__":
     ARGS = parser.parse_args()
 
     # Load calibration data
-    with open(ARGS.file, "r") as json_file:
+    with open(ARGS.file) as json_file:
         calib_info = json.load(json_file)
 
     info = calib_info["info"]
@@ -439,7 +432,7 @@ if __name__ == "__main__":
             minimizer_kwargs=minimizer_kwargs,
             callback=bh_callback,
         )
-        with open("{}/bh_basin_progress.json".format(output_directory), "w") as fp:
+        with open(f"{output_directory}/bh_basin_progress.json", "w") as fp:
             json.dump(bh_basin_progress, fp, indent=4, separators=(",", ": "))
 
     rot_degrees = ret.x[0]
@@ -456,12 +449,12 @@ if __name__ == "__main__":
     print(pos_list)
     output_json["antenna_positions"] = pos_list
 
-    with open("{}/{}_opt_json.json".format(output_directory, method), "w") as fp:
+    with open(f"{output_directory}/{method}_opt_json.json", "w") as fp:
         json.dump(output_json, fp, indent=4, separators=(",", ": "))
 
     f_history_json = {}
     f_history_json["start"] = s
     f_history_json["history"] = f_vs_iteration
 
-    with open("{}/{}_history.json".format(output_directory, method), "w") as fp:
+    with open(f"{output_directory}/{method}_history.json", "w") as fp:
         json.dump(f_history_json, fp, indent=4, separators=(",", ": "))

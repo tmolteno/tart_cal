@@ -15,15 +15,12 @@
 
 import argparse
 
-import numpy as np
-import numpy.fft as fft
-
 import matplotlib.pyplot as plt
-
-from tart.operation import observation
+import numpy as np
+from numpy import fft
 from tart.imaging import correlator
+from tart.operation import observation
 from tart.util import constants
-
 from tart_tools import api_handler
 
 '''
@@ -70,10 +67,10 @@ if __name__ == '__main__':
 
     corr = correlator.Correlator()
     vis = corr.correlate(obs)
-    print("Timestamp: {}".format(vis.timestamp))
-    print("Config: {}".format(vis.config.Dict))
-    print("Baselines: {}".format(vis.baselines))
-    print("visibilities: {}".format(vis.v))
+    print(f"Timestamp: {vis.timestamp}")
+    print(f"Config: {vis.config.Dict}")
+    print(f"Baselines: {vis.baselines}")
+    print(f"visibilities: {vis.v}")
 
     baselines = np.asarray(vis.baselines)
     v_arr = np.asarray(vis.v)
@@ -132,7 +129,7 @@ if __name__ == '__main__':
     plt.figure(figsize=(8, 6), dpi=num_bin/6)
     plt.title("Inverse FFT image")
 
-    print("Dynamic Range: {}".format(np.max(img)))
+    print(f"Dynamic Range: {np.max(img)}")
 
     plt.imshow(img, extent=[-1, 1, -1, 1])
 

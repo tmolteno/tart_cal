@@ -1,13 +1,11 @@
 
+import argparse
 import glob
 import json
-import argparse
-from tqdm import tqdm
 
 import numpy as np
-
 from tart.operation import settings
-
+from tqdm import tqdm
 
 from .acquisition import acquire_full
 from .calibration_data import load_cal_files
@@ -68,7 +66,7 @@ def acquire_all_gnss(measurements):
 
 def get_gnss_data(measurements, fname):
     try:
-        with open(fname, "r") as fp:
+        with open(fname) as fp:
             full_acquisition_data = json.load(fp)
     except:
         full_acquisition_data = acquire_all_gnss(measurements)
@@ -102,7 +100,7 @@ def find_vis_satellites(full_acquisition_data, elevation):
 
             mean_str = np.median(st)
             med_ph = np.median(ph)
-            good = np.where((st > 7.5))
+            good = np.where(st > 7.5)
 
             best_acq[good] += 1
 
@@ -173,7 +171,7 @@ def main():
     raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
 
     print(json_files)
-    with open(json_files[0], "r") as json_file:
+    with open(json_files[0]) as json_file:
         calib_info = json.load(json_file)
 
     info = calib_info["info"]
@@ -194,7 +192,7 @@ def main():
 
     # Find an antenna that is present in all data.
 
-    for b, a in zip(eqn['best'], eqn['antennas']):
+    for b, a in zip(eqn['best'], eqn['antennas'], strict=False):
         if b < 3:
             print(a, b)
 

@@ -2,12 +2,9 @@ import logging
 import re
 
 import numpy as np
-
-from tart_tools import api_imaging
-from tart.imaging import elaz
-
+from tart.imaging import correlator, elaz
 from tart.operation import observation
-from tart.imaging import correlator
+from tart_tools import api_imaging
 
 logger = logging.getLogger()
 

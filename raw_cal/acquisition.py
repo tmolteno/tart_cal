@@ -7,17 +7,14 @@
     # pip install pyfftw
 '''
 
+import os
+import pickle
 import time
+from pathlib import Path
+
 import numpy as np
 import pyfftw
 import scipy
-import os
-
-from scipy import optimize
-
-import pickle
-
-from pathlib import Path
 
 
 def get_wisdom(fname):
@@ -127,7 +124,7 @@ def correlate_aux_full(frequency, signal, phasepoints, codefreq):
 def acquire_aux_full(x, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefreq, phasepoints):
     total_samples = x.shape[0]
     result1 = np.empty((numberOfFrqBins, total_samples))
-    for i in range(0, numberOfFrqBins):
+    for i in range(numberOfFrqBins):
         acqRes1 = correlate_aux_full(fc[i], x, phasepoints, codefreq)
         result1[i, :] = acqRes1
     return result1
@@ -314,7 +311,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
     if debug:
         print('num epochs:', epochs_available)
-    for epoch in range(0, int(epochs_available)):
+    for epoch in range(int(epochs_available)):
         # Get the correspi
         start_index = int(epoch*samples_per_ms) # int!    Changed by max
         stop_index = start_index + int(samples_per_ms) # int! Changed by max
@@ -405,7 +402,7 @@ def acquire(x, sampling_freq, center_freq, searchBand, PRN, debug=False):
 
 def optimize_fit(PRN, x, epochs_available, samples_per_ms, sampling_period, fc, freq, frequency, center_freq, codephase):
     num_samples = int(epochs_available*samples_per_ms) # int! changed by max
-    phase_const = 2.0j*np.pi*sampling_period;
+    phase_const = 2.0j*np.pi*sampling_period
     code_samples = np.linspace(0,num_samples-1,num_samples)
     signal = x[0:num_samples]
     # Generate a local signal sampled at the right sampling rate, and no phase change.
@@ -431,7 +428,7 @@ def optimize_fit(PRN, x, epochs_available, samples_per_ms, sampling_period, fc, 
     cp_max = autocorrelation.argmax()
     cp_peak = autocorrelation.max()
     #print("        [%02d] Codephase Optim %d -> %d (peak %f)" % (PRN, codephase, cp_max % samples_per_ms, cp_peak))
-    codephase_frac = cp_max / samples_per_ms;
+    codephase_frac = cp_max / samples_per_ms
     # Now fit a gaussian to the codephase.
     try:
         cw = 2
@@ -469,7 +466,7 @@ def acquire_aux(x, sampling_freq, fc, numberOfFrqBins, PRN, code_samples, codefr
     samples_per_chunk = int(samples_per_ms)
 
     result1 = np.empty((numberOfFrqBins, samples_per_chunk))
-    for i in range(0, numberOfFrqBins):
+    for i in range(numberOfFrqBins):
         acqRes1 = correlate_aux(fc[i], signal1, phasepoints, codefreq)
         result1[i,:] = acqRes1
     return result1
