@@ -9,11 +9,11 @@ license = {text = "GPLv3"}
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "torch (>=2.7.1,<3.0.0)",
     "scipy (>=1.16.0,<2.0.0)",
     "matplotlib (>=3.10.3,<4.0.0)",
     "pyfftw (>=0.15.0,<0.16.0)",
-    "tart-tools (>=1.3.1,<2.0.0)"
+    "tart-tools (>=1.3.1,<2.0.0)",
+    "torch (>=2.7.1,<3.0.0)"
 ]
 
 
@@ -25,14 +25,7 @@ raw_calibrate = "raw_cal.tart_cal:main"
 pos_from_gps = "raw_cal.pos_from_gps:main"
 get_cal_data = "raw_cal.get_cal_data:main"
 
-[[tool.poetry.source]]
-name = "pytorch_cpu"
-url = "https://download.pytorch.org/whl/cpu"
-priority = "explicit"
-
-
 [tool.poetry.dependencies]
-torch = {source = "pytorch_cpu"}
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
