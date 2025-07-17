@@ -3,9 +3,10 @@ import glob
 import json
 
 import numpy as np
-from acquisition import acquire
 from tart.imaging import correlator
 from tart.operation import observation, settings
+
+from acquisition import acquire
 from tart_cal import load_data_from_json
 
 if __name__ == "__main__":

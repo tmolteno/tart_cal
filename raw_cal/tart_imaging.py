@@ -66,7 +66,7 @@ def get_baselines(ant_pos):
     return ant_pos[j_indices, :] - ant_pos[i_indices, :]
 
 
-def get_uv_coordinate(bl, image_size, wavelength):
+def get_uv_coordinates(bl, image_size, wavelength):
     ''' A little function to produce the index into the u-v array
         for a given value (u, measured in wavelengths)
     '''
@@ -88,6 +88,3 @@ def get_uv_coordinate(bl, image_size, wavelength):
     uv_pix = uv_pix[max_pix < image_size, :]
 
     return np.floor(uv_pix).astype(int)
-
-
-
