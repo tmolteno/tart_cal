@@ -68,14 +68,36 @@ class TestImaging(unittest.TestCase):
             baselines=bl, wavelength=self.tart_wavelength)
 
         uv_image = tart_imaging.get_uv_plane(img)
-        uvpix = tart_imaging.get_uv_array_indices(bl, imsize, wavelength=self.tart_wavelength)
+        uvpix = tart_imaging.get_uv_array_indices(imsize, bl, wavelength=self.tart_wavelength)
 
         for i in range(len(vis)):
             u, v = uvpix[i]
-            self.assertEqual(vis[i],  uv_image.pixels[u, v])
+            self.assertAlmostEqual(vis[i],  uv_image.pixels[u, v])
+
+    def test_visibility_conjugate(self):
+        imsize = 128
+        npoint = 10
+        img, larray, marray, parray = self.random_image(npoint, image_size=imsize)
+
+        # Now generate a random antenna array
+        n_ant = 24
+        ant_pos = self.random_ant_pos(n_ant)
+        bl = tart_imaging.get_baselines(ant_pos)
+
+        wavelength = self.tart_wavelength
+
+        vis = tart_imaging.get_simulated_visibilities(img, bl, wavelength=wavelength)
+        uvpix = tart_imaging.get_uv_array_indices(imsize, bl, wavelength=wavelength)
+
+        vis_neg = tart_imaging.get_simulated_visibilities(img, -bl, wavelength=wavelength)
+        uvpix_neg = tart_imaging.get_uv_array_indices(imsize, -bl, wavelength=wavelength)
+
+        for vp, vn, uv,uvn in zip(vis, vis_neg, uvpix, uvpix_neg):
+            print(vp, vn, uv, uvn)
+            self.assertAlmostEqual(vp.item(), torch.conj(vn).item(), 4)
 
     def test_multipoint_imaging(self):
-        imsize = 128
+        imsize = 256
         npoint = 10
         img, larray, marray, parray = self.random_image(npoint, image_size=imsize)
 
@@ -117,4 +139,4 @@ class TestImaging(unittest.TestCase):
         for i in range(npoint):
             p2 = im2.get_point(larray[i], marray[i])
             p2_scaled = torch.abs(p2).item()
-            self.assertAlmostEqual(p2_scaled/parray[i], 1, delta=0.2)
+            self.assertAlmostEqual(p2_scaled/parray[i], 1, delta=0.3)

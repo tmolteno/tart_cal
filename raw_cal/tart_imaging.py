@@ -23,7 +23,7 @@ class Image:
     def add_point(self, l, m, power):
         x = self.get_l_index(l)
         y = self.get_m_index(m)
-        self.pixels[x, y] = power
+        self.pixels[x, y] += power
 
     def get_point(self, l, m):
         x = self.get_l_index(l)
@@ -66,7 +66,7 @@ def get_baselines(ant_pos):
     return ant_pos[j_indices, :] - ant_pos[i_indices, :]
 
 
-def get_uv_array_indices(baselines, image_size, wavelength):
+def get_uv_array_indices(image_size, baselines, wavelength):
     ''' A little function to produce the index into the u-v array
         for a given value (u, measured in wavelengths)
     '''
@@ -77,14 +77,11 @@ def get_uv_array_indices(baselines, image_size, wavelength):
 
     uv_pix = middle + (uv / uv_max)*(image_size/2)
 
+    # Truncate any uv elements that don't fit into the array
     max_pix = np.max(uv_pix, axis=1)
-
-    # goodu = (np.abs(u_pix) < uv_max).all()
-    # goodv = (np.abs(v_pix) < uv_max).all()
-    # good_uv = np.logical_and(goodu, goodv)
     uv_pix = uv_pix[max_pix < image_size, :]
 
-    return np.floor(uv_pix).astype(int)
+    return np.round(uv_pix).astype(int)
 
 def get_simulated_visibilities(image, baselines, wavelength):
     ''' Simulate some visibilities from an image by
@@ -94,7 +91,7 @@ def get_simulated_visibilities(image, baselines, wavelength):
     uv_image = get_uv_plane(image)
     imsize = uv_image.image_size
 
-    uvpix = get_uv_array_indices(baselines, imsize, wavelength=wavelength)
+    uvpix = get_uv_array_indices(imsize, baselines, wavelength=wavelength)
     upix = uvpix[:,0]
     vpix = uvpix[:,1]
     vis = uv_image.pixels[upix, vpix]
@@ -103,13 +100,14 @@ def get_simulated_visibilities(image, baselines, wavelength):
 
 def get_gridded_vis(image, baselines, wavelength):
     imsize = image.image_size
-    gridded = Image.zeros(imsize)
 
     vis = get_simulated_visibilities(image, baselines, wavelength=wavelength)
-    uvpix = get_uv_array_indices(baselines, imsize, wavelength=wavelength)
+    uvpix = get_uv_array_indices(imsize, baselines, wavelength=wavelength)
 
     vis_neg = get_simulated_visibilities(image, -baselines, wavelength=wavelength)
-    uvpix_neg = get_uv_array_indices(-baselines, imsize, wavelength=wavelength)
+    uvpix_neg = get_uv_array_indices(imsize, -baselines, wavelength=wavelength)
+
+    gridded = Image.zeros(imsize)
 
     upix = uvpix[:,0]
     vpix = uvpix[:,1]
