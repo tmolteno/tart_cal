@@ -66,7 +66,7 @@ def get_baselines(ant_pos):
     return ant_pos[j_indices, :] - ant_pos[i_indices, :]
 
 
-def get_uv_coordinates(bl, image_size, wavelength):
+def get_uv_array_indices(bl, image_size, wavelength):
     ''' A little function to produce the index into the u-v array
         for a given value (u, measured in wavelengths)
     '''
@@ -74,17 +74,55 @@ def get_uv_coordinates(bl, image_size, wavelength):
     middle = image_size / 2
 
     uv = bl[:, 0:2] / wavelength
-    print(uv)
-    print(f"uvmax {uv_max}")
-    print(middle)
 
     uv_pix = middle + (uv / uv_max)*(image_size/2)
 
     max_pix = np.max(uv_pix, axis=1)
-    print(max_pix)
+
     # goodu = (np.abs(u_pix) < uv_max).all()
     # goodv = (np.abs(v_pix) < uv_max).all()
     # good_uv = np.logical_and(goodu, goodv)
     uv_pix = uv_pix[max_pix < image_size, :]
 
     return np.floor(uv_pix).astype(int)
+
+def get_simulated_visibilities(image, baselines, wavelength):
+    ''' Simulate some visibilities from an image by
+    doing an fft and then sampling at the correct points
+    and generate a gridded plane'''
+
+    uv_image = get_uv_plane(image)
+    imsize = uv_image.image_size
+
+    uvpix = get_uv_array_indices(baselines, imsize, wavelength=wavelength)
+    upix = uvpix[:,0]
+    vpix = uvpix[:,1]
+    vis = uv_image.pixels[upix, vpix]
+
+    return vis
+
+def get_gridded_vis(image, baselines, wavelength):
+    imsize = image.image_size
+    gridded = Image.zeros(imsize)
+
+    vis = get_simulated_visibilities(image, baselines, wavelength=wavelength)
+    uvpix = get_uv_array_indices(baselines, imsize, wavelength=wavelength)
+
+    vis_neg = get_simulated_visibilities(image, -baselines, wavelength=wavelength)
+    uvpix_neg = get_uv_array_indices(-baselines, imsize, wavelength=wavelength)
+
+    upix = uvpix[:,0]
+    vpix = uvpix[:,1]
+    gridded.pixels[upix,vpix] += vis
+
+    upix = uvpix_neg[:,0]
+    vpix = uvpix_neg[:,1]
+    gridded.pixels[upix,vpix] += vis_neg
+
+    # for i in range(len(vis)):
+    #     u, v = uvpix[i]
+    #     un, vn = uvpix_neg[i]
+    #     gridded.pixels[u,v] = vis[i]
+    #     gridded.pixels[un,vn] = vis_neg[i]
+
+    return gridded

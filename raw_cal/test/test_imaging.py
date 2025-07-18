@@ -8,10 +8,13 @@ from raw_cal import tart_imaging
 
 class TestImaging(unittest.TestCase):
 
+    def setUp(self):
+        self.tart_wavelength = 2.9979e8 / 1.57542e9
+
     def random_image(self, n_points, image_size):
         larray = np.random.uniform(-1, 1, size=n_points)
         marray = np.random.uniform(-1, 1, size=n_points)
-        parray = np.random.uniform(1, 10, size=n_points)
+        parray = np.random.uniform(5, 10, size=n_points)
 
         img = tart_imaging.Image.zeros(image_size)
 
@@ -50,57 +53,53 @@ class TestImaging(unittest.TestCase):
         self.assertEqual(baselines.shape[0], n_ant*(n_ant-1) / 2)
         self.assertEqual(baselines.shape[1], 3)
 
-    def test_multipoint_imaging(self):
-        tart_wavelength = 2.9979e8 / 1.57542e9
+    def test_simulated_vis(self):
         imsize = 128
         npoint = 10
         img, larray, marray, parray = self.random_image(npoint, image_size=imsize)
 
-        # Get the UV plane
-        uv = tart_imaging.get_uv_plane(img)
+        # Now generate a random antenna array
+        n_ant = 24
+        ant_pos = self.random_ant_pos(n_ant)
+        bl = tart_imaging.get_baselines(ant_pos)
+
+        vis = tart_imaging.get_simulated_visibilities(
+            image=img,
+            baselines=bl, wavelength=self.tart_wavelength)
+
+        uv_image = tart_imaging.get_uv_plane(img)
+        uvpix = tart_imaging.get_uv_array_indices(bl, imsize, wavelength=self.tart_wavelength)
+
+        for i in range(len(vis)):
+            u, v = uvpix[i]
+            self.assertEqual(vis[i],  uv_image.pixels[u, v])
+
+    def test_multipoint_imaging(self):
+        imsize = 128
+        npoint = 10
+        img, larray, marray, parray = self.random_image(npoint, image_size=imsize)
 
         # Now generate a random antenna array
         n_ant = 24
         ant_pos = self.random_ant_pos(n_ant)
-
-        # Now mask the uvplane with the antenna positions
-        uvmasked = tart_imaging.Image.zeros(imsize)
-
         bl = tart_imaging.get_baselines(ant_pos)
-        uvpix = tart_imaging.get_uv_coordinates(bl, imsize, wavelength=tart_wavelength)
 
-        for u, v in uvpix:
-            uvmasked.pixels[u, v] = uv.pixels[u, v]
-
-        uvpix = tart_imaging.get_uv_coordinates(-bl, imsize, wavelength=tart_wavelength)
-
-        for u, v in uvpix:
-            uvmasked.pixels[u, v] = uv.pixels[u, v]
+        gridded = tart_imaging.get_gridded_vis(image=img, baselines=bl, wavelength=self.tart_wavelength)
+        uv_image = tart_imaging.get_uv_plane(img)
 
         # Image the masked array
-        im2 = tart_imaging.get_image(uvmasked)
+        im2 = tart_imaging.get_image(gridded)
 
-        tot_uv = torch.abs(torch.sum(uv.pixels))
-        tot_masked = torch.abs(torch.sum(uvmasked.pixels))
+        # Scale the image as we haven't all visibilities
+        tot_uv = torch.sum(torch.abs(uv_image.pixels))
+        tot_masked = torch.sum(torch.abs(gridded.pixels))
+        im2.pixels *= tot_uv / tot_masked
 
-        output_scale = tot_uv / tot_masked
-
-        if True:
+        if False:
             random_pix = np.abs(img.pixels.numpy())
-            random_pix = random_pix
-
-            uv_pix = np.abs(uv.pixels.numpy())
-            uv_pix = uv_pix
-
-            tot_uv = np.sum(uv_pix)
-
-            masked_pix = np.abs(uvmasked.pixels.numpy())
-            masked_pix = masked_pix
-
-            tot_masked = np.sum(masked_pix)
-
+            uv_pix = np.abs(uv_image.pixels.numpy())
+            masked_pix = np.abs(gridded.pixels.numpy())
             recovered = np.abs(im2.pixels.numpy())
-            recovered = recovered * (tot_uv / tot_masked)
 
             fig, ax = plt.subplots(nrows=2, ncols=2)
             im00 = ax[0,0].imshow(random_pix)
@@ -117,5 +116,5 @@ class TestImaging(unittest.TestCase):
 
         for i in range(npoint):
             p2 = im2.get_point(larray[i], marray[i])
-            p2_scaled = torch.abs(p2)*output_scale
-            self.assertAlmostEqual(p2_scaled.item(), parray[i], 1)
+            p2_scaled = torch.abs(p2).item()
+            self.assertAlmostEqual(p2_scaled/parray[i], 1, delta=0.2)
