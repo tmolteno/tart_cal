@@ -66,14 +66,14 @@ def get_baselines(ant_pos):
     return ant_pos[j_indices, :] - ant_pos[i_indices, :]
 
 
-def get_uv_array_indices(bl, image_size, wavelength):
+def get_uv_array_indices(baselines, image_size, wavelength):
     ''' A little function to produce the index into the u-v array
         for a given value (u, measured in wavelengths)
     '''
     uv_max = image_size / 4   # (1.2 * np.pi)
     middle = image_size / 2
 
-    uv = bl[:, 0:2] / wavelength
+    uv = baselines[:, 0:2] / wavelength
 
     uv_pix = middle + (uv / uv_max)*(image_size/2)
 
