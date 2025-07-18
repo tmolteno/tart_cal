@@ -13,9 +13,7 @@ dependencies = [
     "matplotlib (>=3.10.3,<4.0.0)",
     "pyfftw (>=0.15.0,<0.16.0)",
     "tart-tools (>=1.3.1,<2.0.0)",
-    "torch (>=2.7.1,<3.0.0)"
 ]
-
 
 [tool.poetry]
 packages = [{include = "raw_cal"}]
@@ -25,7 +23,23 @@ raw_calibrate = "raw_cal.tart_cal:main"
 pos_from_gps = "raw_cal.pos_from_gps:main"
 get_cal_data = "raw_cal.get_cal_data:main"
 
+
 [tool.poetry.dependencies]
+torch = [
+  {version = "^2.7.1", markers = "sys_platform == 'darwin'"},
+  {version = "^2.7.1", markers = "sys_platform != 'darwin'", source = "torch_cpu"}
+]
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "torch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "supplemental"
