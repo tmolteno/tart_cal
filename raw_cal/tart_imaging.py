@@ -98,29 +98,18 @@ def get_simulated_visibilities(image, baselines, wavelength):
 
     return vis
 
-def get_gridded_vis(image, baselines, wavelength):
-    imsize = image.image_size
 
-    vis = get_simulated_visibilities(image, baselines, wavelength=wavelength)
-    uvpix = get_uv_array_indices(imsize, baselines, wavelength=wavelength)
-
-    #vis_neg = get_simulated_visibilities(image, -baselines, wavelength=wavelength)
-    uvpix_neg = get_uv_array_indices(imsize, -baselines, wavelength=wavelength)
-
+def gridder(vis, imsize, baselines, wavelength):
     gridded = Image.zeros(imsize)
 
+    uvpix = get_uv_array_indices(imsize, baselines, wavelength=wavelength)
     upix = uvpix[:,0]
     vpix = uvpix[:,1]
     gridded.pixels[upix,vpix] += vis
 
+    uvpix_neg = get_uv_array_indices(imsize, -baselines, wavelength=wavelength)
     upix = uvpix_neg[:,0]
     vpix = uvpix_neg[:,1]
     gridded.pixels[upix,vpix] += torch.conj(vis)
-
-    # for i in range(len(vis)):
-    #     u, v = uvpix[i]
-    #     un, vn = uvpix_neg[i]
-    #     gridded.pixels[u,v] = vis[i]
-    #     gridded.pixels[un,vn] = vis_neg[i]
 
     return gridded

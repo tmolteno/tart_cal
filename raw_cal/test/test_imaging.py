@@ -106,7 +106,10 @@ class TestImaging(unittest.TestCase):
         ant_pos = self.random_ant_pos(n_ant)
         bl = tart_imaging.get_baselines(ant_pos)
 
-        gridded = tart_imaging.get_gridded_vis(image=img, baselines=bl, wavelength=self.tart_wavelength)
+        # Simulate some visibilities
+        vis = tart_imaging.get_simulated_visibilities(image=img, baselines=bl, wavelength=self.tart_wavelength)
+        gridded = tart_imaging.gridder(vis=vis, imsize=imsize, baselines=bl, wavelength=self.tart_wavelength)
+
         uv_image = tart_imaging.get_uv_plane(img)
 
         # Image the masked array
