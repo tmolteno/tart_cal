@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+from tart.imaging import elaz
 
 class Image:
 
