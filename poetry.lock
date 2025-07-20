@@ -1513,32 +1513,32 @@ dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
 name = "tart"
-version = "1.3.1"
+version = "1.3.3"
 description = "Transient Array Radio Telescope Imaging and Operation Library"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.11"
 groups = ["main"]
 files = [
-    {file = "tart-1.3.1-py3-none-any.whl", hash = "sha256:d75f2b2fef956cd5e859c8a9a3ed180ae42d21f66e9a5f28c8dc902ed43ff312"},
-    {file = "tart-1.3.1.tar.gz", hash = "sha256:2ea1ffeaa547286298ab064cc58cc07853a1d028822dd3a77354228c290a2abb"},
+    {file = "tart-1.3.3-py3-none-any.whl", hash = "sha256:a5d45c4f6a79ff76c2656e5799444e642a574090da26a4e0d5c7190272997516"},
+    {file = "tart-1.3.3.tar.gz", hash = "sha256:d35ff958d0733811cd632d38b8e51cfb8fc3fc1e2711711d09a45a6bdbb6792a"},
 ]
 
 [package.dependencies]
 h5py = "*"
-numpy = "*"
+numpy = ">=2.0.0"
 python-dateutil = "*"
 scipy = "*"
 
 [[package]]
 name = "tart-tools"
-version = "1.3.1"
+version = "1.3.3"
 description = "Transient Array Radio Telescope Command Line Tools"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "tart_tools-1.3.1-py3-none-any.whl", hash = "sha256:0d2254b0709d079dab1cc8c9660379d0b106a46d2a2a072630f5cd058fa79ccd"},
-    {file = "tart_tools-1.3.1.tar.gz", hash = "sha256:be58a0112b6e04bb95c7409a0353d5d9a91c0b82e3b4953a72e7a20e0bf4cea8"},
+    {file = "tart_tools-1.3.3-py2.py3-none-any.whl", hash = "sha256:6ff0199e60c7a6ecf5533f8ce5691b7f8e4e35c2c3e17d3959dfaee62d9d346f"},
+    {file = "tart_tools-1.3.3.tar.gz", hash = "sha256:1c17bc20a945cb341da78020fa24d04d33569c406de6c15bb1d5ad4e7d40d341"},
 ]
 
 [package.dependencies]
@@ -1739,4 +1739,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "2e30145728ac764675c6e0c580fa41782d62dba0f9e670fe52d9173af7f36c16"
+content-hash = "8febf3c090b5c664182749b70a7f57f04975dce7075b7176f8646d2276792d3e"

@@ -268,7 +268,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         cv.set_gain(ant_idxs, gains)
         imaging.rotate_vis(np.degrees(rot_rad), cv, original_positions)
 
-        n_bin = 2 ** 8
+        n_bin = 2 ** 7
         cal_ift, cal_extent, n_fft, bin_width = \
             imaging.image_from_calibrated_vis(cv, nw=n_bin / 4,
                                               num_bin=n_bin)
@@ -288,7 +288,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
                     p = np.exp(-(r2/d))
                     if p > 0.2:
                         p = 1
-                    full_sky_mask[y, x] = p
+                    full_sky_mask[x, y] = p
             full_sky_masks[i] = full_sky_mask
 
         if mask_list[i] is None:
@@ -314,7 +314,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             # mask[mask>0.4] = 1
             mask_list[i] = mask
-            mask_sums[i] = np.sum(mask)
+            mask_sums[i] = np.sum(mask) + 0.01
 
             plt.figure()
             plt.imshow(
