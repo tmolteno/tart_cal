@@ -333,7 +333,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             plt.close()
 
         masked_sky = (ift_scaled*full_sky_masks[i])
-        max_sky = masked_sky.max()
+        max_sky = np.sqrt(masked_sky.max())
         sn_score = max_sky / np.mean(masked_sky)  # Peak signal to noise
         ret_std += -sn_score
 
