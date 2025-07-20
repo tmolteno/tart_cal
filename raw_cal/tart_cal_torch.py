@@ -13,14 +13,17 @@ import glob
 import json
 import logging
 import os
+import torch
 from copy import deepcopy
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import optimize
-from tart.imaging import elaz, imaging
+from tart.imaging import elaz
 from tart.operation import settings
+
+from . import tart_imaging as imaging
 
 from .calibration_data import find_good_satellites, load_cal_files
 from .pos_from_gps import get_gnss_data
@@ -81,20 +84,10 @@ class ParamReIm(Param):
         self.im_indices = slice(self.nant, self.nend)
 
     def from_vector(self, x):
-        self.rot_rad = x[0]
-        re = np.concatenate(([1], x[self.re_indices]))
-        im = np.concatenate(([0], x[self.im_indices]))
-        self.gains = np.sqrt(re * re + im * im)
-        self.phase_offsets = np.arctan2(im, re)
+        self.x = x
 
     def to_vector(self):
-        ret = np.zeros(self.nend)
-        ret[0] = self.rot_rad
-        z = self.gains[self.free_antennas] * \
-            np.exp(self.phase_offsets[self.free_antennas] * 1j)
-        ret[self.re_indices] = z.real
-        ret[self.im_indices] = z.imag
-        return ret
+        return self.x
 
     def bounds(self, test_gains):
 
@@ -185,75 +178,8 @@ class ParamPhase(Param):
         return bounds
 
 
-class ParamGainPhase(Param):
 
-    def __init__(self, nant, pointing_center, pointing_error, gains):
-        super().__init__(nant, pointing_center, pointing_error)
-        self.gains = gains
-        self.nend = int(2*self.nant-1)
-        self.free_antennas = slice(1, self.nant)
-        self.gain_indices = slice(1, self.nant)
-        self.phase_indices = slice(self.nant, self.nend)
-        self.phase_offsets = np.zeros_like(self.gains)
-
-    def take_step(self, x, stepsize):
-        ret = np.zeros_like(x)
-
-        pnt = self.pointing_error*stepsize
-
-        phase_step = stepsize * np.pi
-        gain_step = stepsize * 0.1
-
-        rot_step    = np.random.normal(0, pnt)
-        phase_steps = np.random.normal(0, phase_step, self.nant-1)
-        gain_steps  = np.random.normal(0, gain_step, self.nant-1)
-
-        new_rot = x[0] + rot_step
-
-        new_gains = x[self.gain_indices] + gain_steps
-        new_phase = x[self.phase_indices] + phase_steps
-        new_phase[new_phase < -np.pi] += 2*np.pi
-        new_phase[new_phase > np.pi] -= 2*np.pi
-        ret = np.concatenate(([new_rot], new_gains, new_phase))
-        return ret
-
-    def from_vector(self, x):
-        self.rot_rad = x[0]
-        self.phase_offsets[self.free_antennas] = x[self.phase_indices]
-        self.gains[self.free_antennas] = x[self.gain_indices]
-
-    def to_vector(self):
-        ret = np.zeros(self.nend)
-        ret[0] = self.rot_rad
-        ret[self.phase_indices] = self.phase_offsets[self.free_antennas]
-        ret[self.gain_indices] = self.gains[self.free_antennas]
-        return ret
-
-    def bounds(self, test_gains):
-        bounds = [0] * self.nend
-        bounds[0] = self.pointing_bounds()
-        for i in range(1, self.nant):
-            tg = test_gains[i]
-            if tg < 0.01:
-                bounds[i] = (0, 1e-3)  # Gain bounds
-                bounds[i + self.nant - 1] = (0, 1e-3)  # Phase bounds
-            else:
-                bounds_err = 0.3
-                bounds[i] = (test_gains[i] * (1-bounds_err), test_gains[i] * 1+(bounds_err)) # Bounds for gains
-                bounds[i + self.nant - 1] = (-np.inf, np.inf) # Bounds for phases
-
-        return bounds
-
-
-def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
-    global triplets, ij_index, jk_index, ik_index, mask_list, myParam
-    global mask_sums, ret_std, ret_zone, full_sky_masks
-    global ift_scaled_list
-
-    myParam.from_vector(opt_parameters)
-    rot_rad = myParam.rot_rad
-    gains = myParam.gains
-    phase_offsets = myParam.phase_offsets
+def calc_score_aux(opt_parameters, measurements, window_deg):
 
     ret_zone = 0.0
     ret_std = 0.0
@@ -264,17 +190,14 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
     for i, m in enumerate(measurements):
         cv, ts, src_list, prn_list, obs = m
 
-        cv.set_phase_offset(ant_idxs, phase_offsets)
-        cv.set_gain(ant_idxs, gains)
-        imaging.rotate_vis(np.degrees(rot_rad), cv, original_positions)
+        vis = opt_parameters * cv.vis
+        baselines = cv.baselines
 
-        n_bin = 2 ** 8
-        cal_ift, cal_extent, n_fft, bin_width = \
-            imaging.image_from_calibrated_vis(cv, nw=n_bin / 4,
-                                              num_bin=n_bin)
+        image_size = 128
+        ifft_image = imaging.image_from_vis(vis, image_size, baselines, wavelength)
 
-        abs_ift = np.abs(cal_ift)
-        ift_std = np.median(abs_ift)
+        abs_ift = torch.abs(ifft_image.pixels)
+        ift_std = torch.std(abs_ift)
         ift_scaled = abs_ift / ift_std
         ift_scaled_list.append(ift_scaled)
 

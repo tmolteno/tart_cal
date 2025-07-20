@@ -1,8 +1,6 @@
 import numpy as np
 import torch
 
-from tart.imaging import elaz
-
 class Image:
 
     def __init__(self, pixels):
@@ -15,11 +13,11 @@ class Image:
         pix = torch.zeros(image_size, image_size, dtype=torch.complex64)
         return Image(pix)
 
-    def get_l_index(self, lm):
-        return int(self.width*(1 + lm))
+    def get_l_index(self, l):
+        return int(self.width*(1 + l))
 
-    def get_m_index(self, lm):
-        return int(self.width*(1 - lm))
+    def get_m_index(self, m):
+        return int(self.width*(1 - m))
 
     def add_point(self, l, m, power):
         x = self.get_l_index(l)
@@ -90,9 +88,9 @@ def get_simulated_visibilities(image, baselines, wavelength):
     and generate a gridded plane'''
 
     uv_image = get_uv_plane(image)
-    imsize = uv_image.image_size
+    image_size = uv_image.image_size
 
-    uvpix = get_uv_array_indices(imsize, baselines, wavelength=wavelength)
+    uvpix = get_uv_array_indices(image_size, baselines, wavelength=wavelength)
     upix = uvpix[:,0]
     vpix = uvpix[:,1]
     vis = uv_image.pixels[upix, vpix]
@@ -100,17 +98,22 @@ def get_simulated_visibilities(image, baselines, wavelength):
     return vis
 
 
-def gridder(vis, imsize, baselines, wavelength):
-    gridded = Image.zeros(imsize)
+def gridder(vis, image_size, baselines, wavelength):
+    gridded = Image.zeros(image_size)
 
-    uvpix = get_uv_array_indices(imsize, baselines, wavelength=wavelength)
+    uvpix = get_uv_array_indices(image_size, baselines, wavelength=wavelength)
     upix = uvpix[:,0]
     vpix = uvpix[:,1]
     gridded.pixels[upix,vpix] += vis
 
-    uvpix_neg = get_uv_array_indices(imsize, -baselines, wavelength=wavelength)
+    uvpix_neg = get_uv_array_indices(image_size, -baselines, wavelength=wavelength)
     upix = uvpix_neg[:,0]
     vpix = uvpix_neg[:,1]
     gridded.pixels[upix,vpix] += torch.conj(vis)
 
     return gridded
+
+def image_from_vis(vis, image_size, baselines, wavelength):
+    uvplane = gridder(vis, image_size, baselines, wavelength)
+
+    return get_image(uvplane)
