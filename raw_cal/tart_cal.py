@@ -22,6 +22,8 @@ from scipy import optimize
 from tart.imaging import elaz, imaging
 from tart.operation import settings
 
+from .mask_image import add_source as mask_add_source
+
 from .calibration_data import find_good_satellites, load_cal_files
 from .pos_from_gps import get_gnss_data
 
@@ -279,16 +281,9 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         ift_scaled_list.append(ift_scaled)
 
         if full_sky_masks[i] is None:
-            x0, y0 = n_fft // 2, n_fft // 2
-            d = (n_fft / 2.7)**2
             full_sky_mask = np.zeros_like(ift_scaled)
-            for y in range(full_sky_mask.shape[0]):
-                for x in range(full_sky_mask.shape[1]):
-                    r2 = (y - y0)**2 + (x - x0)**2
-                    p = np.exp(-(r2/d))
-                    if p > 0.2:
-                        p = 1
-                    full_sky_mask[x, y] = p
+            src = elaz.ElAz(90, 0)
+            mask_add_source(full_sky_mask, src, radius_deg=90)
             full_sky_masks[i] = full_sky_mask
 
         if mask_list[i] is None:
@@ -296,13 +291,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
             mask = np.zeros_like(ift_scaled)
 
             for s in good_source_lists[i]:
-                y0, x0 = s.get_px(n_fft)
-                d = 2*s.deg_to_pix(n_fft, window_deg)**2
-                for y in range(mask.shape[0]):
-                    for x in range(mask.shape[1]):
-                        r2 = (y - y0)**2 + (x - x0)**2
-                        p = np.exp(-(r2/d))
-                        mask[x, y] += p
+                mask_add_source(mask, s, radius_deg=window_deg)
 
             # Zone outside of mask
             print(f"Max mask {i} {np.max(mask)}, {np.min(mask)}")

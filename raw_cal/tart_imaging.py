@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 
+from tart.imaging import imaging
+
 class Image:
 
     def __init__(self, pixels):
@@ -14,10 +16,10 @@ class Image:
         return Image(pix)
 
     def get_l_index(self, l):
-        return int(self.width*(1 + l))
+        return imaging.get_l_index(l, self.width)
 
     def get_m_index(self, m):
-        return int(self.width*(1 - m))
+        return imaging.get_m_index(m, self.width)
 
     def add_point(self, l, m, power):
         x = self.get_l_index(l)

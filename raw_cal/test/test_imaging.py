@@ -108,7 +108,7 @@ class TestImaging(unittest.TestCase):
 
         # Simulate some visibilities
         vis = tart_imaging.get_simulated_visibilities(image=img, baselines=bl, wavelength=self.tart_wavelength)
-        gridded = tart_imaging.gridder(vis=vis, imsize=imsize, baselines=bl, wavelength=self.tart_wavelength)
+        gridded = tart_imaging.gridder(vis=vis, image_size=imsize, baselines=bl, wavelength=self.tart_wavelength)
 
         uv_image = tart_imaging.get_uv_plane(img)
 
