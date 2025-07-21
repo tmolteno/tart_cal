@@ -4,8 +4,8 @@ do
         TARGET=tart-kenya \
         TART_CAL_ARGS="--corr-only" \
         TART_GET_DATA=1 \
-        TART_NCAL=1 \
-        TART_CAL_INT=11 \
+        TART_NCAL=2 \
+        TART_CAL_INT=7 \
         TART_CAL_ITERATIONS=800 \
         TART_CAL_ELEVATION=30 \
         TART_CAL_POINTING=0 \

@@ -22,7 +22,7 @@ logger = logging.getLogger()
 def set_vis_mode(api):
     try:
         logger.info("Setting vis mode")
-        resp = api.post_with_token("mode/vis")
+        api.post_with_token("mode/vis")
     except Exception as e:
         logger.exception(e)
         logger.error("Error in setting vis_mode")

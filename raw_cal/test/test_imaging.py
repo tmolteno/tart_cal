@@ -92,7 +92,7 @@ class TestImaging(unittest.TestCase):
         vis_neg = tart_imaging.get_simulated_visibilities(img, -bl, wavelength=wavelength)
         uvpix_neg = tart_imaging.get_uv_array_indices(imsize, -bl, wavelength=wavelength)
 
-        for vp, vn, uv,uvn in zip(vis, vis_neg, uvpix, uvpix_neg):
+        for vp, vn, uv, uvn in zip(vis, vis_neg, uvpix, uvpix_neg):
             print(vp, vn, uv, uvn)
             self.assertAlmostEqual(vp.item(), torch.conj(vn).item(), 4)
 
@@ -127,16 +127,16 @@ class TestImaging(unittest.TestCase):
             recovered = np.abs(im2.pixels.numpy())
 
             fig, ax = plt.subplots(nrows=2, ncols=2)
-            im00 = ax[0,0].imshow(random_pix)
-            fig.colorbar(im00, ax=ax[0,0])
-            im01 = ax[0,1].imshow(uv_pix)
-            fig.colorbar(im01, ax=ax[0,1])
+            im00 = ax[0, 0].imshow(random_pix)
+            fig.colorbar(im00, ax=ax[0, 0])
+            im01 = ax[0, 1].imshow(uv_pix)
+            fig.colorbar(im01, ax=ax[0, 1])
 
-            im10 = ax[1,0].imshow(masked_pix)
-            fig.colorbar(im10, ax=ax[1,0])
+            im10 = ax[1, 0].imshow(masked_pix)
+            fig.colorbar(im10, ax=ax[1, 0])
 
-            im11 = ax[1,1].imshow(recovered)
-            fig.colorbar(im11, ax=ax[1,1])
+            im11 = ax[1, 1].imshow(recovered)
+            fig.colorbar(im11, ax=ax[1, 1])
             plt.show()
 
         for i in range(npoint):

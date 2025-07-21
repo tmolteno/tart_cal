@@ -84,6 +84,7 @@ def get_uv_array_indices(image_size, baselines, wavelength):
 
     return np.round(uv_pix).astype(int)
 
+
 def get_simulated_visibilities(image, baselines, wavelength):
     ''' Simulate some visibilities from an image by
     doing an fft and then sampling at the correct points
@@ -114,6 +115,7 @@ def gridder(vis, image_size, baselines, wavelength):
     gridded.pixels[upix,vpix] += torch.conj(vis)
 
     return gridded
+
 
 def image_from_vis(vis, image_size, baselines, wavelength):
     uvplane = gridder(vis, image_size, baselines, wavelength)

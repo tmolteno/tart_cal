@@ -247,7 +247,7 @@ class ParamGainPhase(Param):
         return bounds
 
 
-def calc_score_aux(opt_parameters, measurements, window_deg, original_positions):
+def calc_score_aux(opt_parameters, measurements, window_radius_deg, original_positions):
     global triplets, ij_index, jk_index, ik_index, mask_list, myParam
     global mask_sums, ret_std, ret_zone, full_sky_masks
     global ift_scaled_list
@@ -281,17 +281,18 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         ift_scaled_list.append(ift_scaled)
 
         if full_sky_masks[i] is None:
+            logger.info(f"Creating full sky mask {ift_scaled.shape}")
             full_sky_mask = np.zeros_like(ift_scaled)
             src = elaz.ElAz(90, 0)
             mask_add_source(full_sky_mask, src, radius_deg=90)
             full_sky_masks[i] = full_sky_mask
 
         if mask_list[i] is None:
-            print(f"Creating mask {i}")
+            logger.info(f"Creating mask {i}")
             mask = np.zeros_like(ift_scaled)
 
             for s in good_source_lists[i]:
-                mask_add_source(mask, s, radius_deg=window_deg)
+                mask_add_source(mask, s, radius_deg=window_radius_deg)
 
             # Zone outside of mask
             print(f"Max mask {i} {np.max(mask)}, {np.min(mask)}")
@@ -323,7 +324,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
         masked_sky = (ift_scaled*full_sky_masks[i])
         max_sky = np.sqrt(masked_sky.max())
-        sn_score = max_sky / np.mean(masked_sky)  # Peak signal to noise
+        sn_score = max_sky / np.std(masked_sky)  # Peak signal to noise
         ret_std += -sn_score
 
         #
@@ -332,8 +333,8 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
         #
         # This is an attempt to avoid bright unknown sources from skewing
         # the phases towards it.
-        masked_img = mask_list[i]*np.clip(masked_sky, a_min=0, a_max=max_sky/2)
-        in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
+        masked_img = mask_list[i]*masked_sky
+        in_zone = np.sum((masked_img)) / mask_sums[i]
         # outmask_img = inv_masks[i]*ift_scaled
         # out_zone = np.median(outmask_img)
 
@@ -359,7 +360,7 @@ def calc_score(
     opt_parameters,
     config,
     measurements,
-    window_deg,
+    window_radius_deg,
     original_positions,
     update=False,
     show=False,
@@ -367,7 +368,7 @@ def calc_score(
     global N_IT, method, output_directory, f_vs_iteration, ret_zone, ret_std
 
     ret_zone, ret_std, ift_scaled_list, n_fft, bin_width = calc_score_aux(
-        opt_parameters, measurements, window_deg, original_positions
+        opt_parameters, measurements, window_radius_deg, original_positions
     )
     ret = float(ret_zone + ret_std)
     if N_IT % 1000 == 0:
@@ -735,14 +736,15 @@ def main():
             if r > blmax:
                 blmax = r
 
-    window_deg = np.degrees(1.2*0.2/blmax)
-    print(f"window_deg: {window_deg}")
+    window_diameter_deg = np.degrees(1.2*0.2/blmax)
+    window_radius_deg = window_diameter_deg / 2.0
+    print(f"window_radius_deg: {window_radius_deg}")
 
     s = calc_score(
         myParam.to_vector(),
         config,
         measurements,
-        window_deg,
+        window_radius_deg,
         original_positions,
         update=False,
         show=False,
@@ -757,7 +759,7 @@ def main():
         param,
         config,
         measurements,
-        window_deg,
+        window_radius_deg,
         original_positions,
         update=False,
         show=False,
