@@ -7,7 +7,7 @@ do
         TART_NCAL=2 \
         TART_CAL_INT=7 \
         TART_CAL_ITERATIONS=800 \
-        TART_CAL_ELEVATION=30 \
+        TART_CAL_ELEVATION=15 \
         TART_CAL_POINTING=0 \
         TART_CAL_POINTING_RANGE=1.5 \
         TART_CAL_UPLOAD=1 \

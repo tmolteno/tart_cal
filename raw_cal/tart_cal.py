@@ -334,7 +334,7 @@ def calc_score_aux(opt_parameters, measurements, window_radius_deg, original_pos
         # This is an attempt to avoid bright unknown sources from skewing
         # the phases towards it.
         masked_img = mask_list[i]*masked_sky
-        in_zone = np.sum((masked_img)) / mask_sums[i]
+        in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         # outmask_img = inv_masks[i]*ift_scaled
         # out_zone = np.median(outmask_img)
 
