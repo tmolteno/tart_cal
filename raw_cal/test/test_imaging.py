@@ -120,7 +120,7 @@ class TestImaging(unittest.TestCase):
         tot_masked = torch.sum(torch.abs(gridded.pixels))
         im2.pixels *= tot_uv / tot_masked
 
-        if False:
+        if True:
             random_pix = np.abs(img.pixels.numpy())
             uv_pix = np.abs(uv_image.pixels.numpy())
             masked_pix = np.abs(gridded.pixels.numpy())
