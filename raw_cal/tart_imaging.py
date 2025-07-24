@@ -15,20 +15,15 @@ class Image:
         pix = torch.zeros(image_size, image_size, dtype=torch.complex64)
         return Image(pix)
 
-    def get_l_index(self, l):
-        return imaging.get_l_index(l, self.image_size)
-
-    def get_m_index(self, m):
-        return imaging.get_m_index(m, self.image_size)
+    def get_lm_index(self, l, m):
+        return imaging.get_lm_index(l, m, self.image_size)
 
     def add_point(self, l, m, power):
-        x = self.get_l_index(l)
-        y = self.get_m_index(m)
+        x, y = self.get_lm_index(l, m)
         self.pixels[x, y] += power
 
     def get_point(self, l, m):
-        x = self.get_l_index(l)
-        y = self.get_m_index(m)
+        x, y = self.get_lm_index(l, m)
         return self.pixels[x, y]
 
 
