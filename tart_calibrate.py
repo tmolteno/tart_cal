@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import optimize
 from tart.imaging import elaz
+from tart.imaging import imaging
 from tart.operation import settings
 from tart_tools import api_handler, api_imaging
 
@@ -95,7 +96,7 @@ def calc_score_aux(opt_parameters, measurements, window_deg, original_positions)
 
             for s in src_list:
                 x0, y0 = s.get_px(n_fft)
-                d = 2*s.deg_to_pix(n_fft, window_deg)
+                d = 2*imaging.deg_to_pix(n_fft, window_deg)
                 for y in range(mask.shape[0]):
                     for x in range(mask.shape[1]):
                         r2 = (y - y0)**2 + (x - x0)**2

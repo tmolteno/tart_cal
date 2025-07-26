@@ -2,7 +2,7 @@ TART=nz-elec
 
 test:
 	 TART_API=https://api.elec.ac.nz/tart/${TART} \
-		TART_NCAL=3 TART_CAL_INT=11 \
+		TART_NCAL=1 TART_CAL_INT=0 \
 		TART_CAL_ITER=700 \
 		TART_LOGIN_PW=sharkbait \
 		./tart_calibrate.sh

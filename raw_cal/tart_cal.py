@@ -306,21 +306,11 @@ def calc_score_aux(opt_parameters, measurements, window_radius_deg, original_pos
             mask_list[i] = mask
             mask_sums[i] = np.sum(mask) + 0.01
 
-            plt.figure()
-            plt.imshow(
-                mask,
-                extent=[-1, 1, -1, 1],
-                vmin=0,
-            )  # vmax=8
-            plt.colorbar()
-            plt.title(f"Mask {i} {ts}")
-            plt.xlim(1, -1)
-            plt.ylim(-1, 1)
-            plt.xlabel("East-West")
-            plt.ylabel("North-South")
-            plt.tight_layout()
-            plt.savefig(f"{output_directory}/mask_{i}.png")
-            plt.close()
+            l_list, m_list = elaz.get_source_coordinates(good_source_lists[i])
+            plot_sky_with_sources(mask,
+                                  l_list, m_list,
+                                  fname=f"mask_{i}.png",
+                                  title=f"Mask {i} {ts}")
 
         masked_sky = (ift_scaled*full_sky_masks[i])
         max_sky = np.sqrt(masked_sky.max())
@@ -389,6 +379,35 @@ class MyTakeStep:
         return myParam.take_step(x, self.stepsize)
 
 
+def plot_sky_with_sources(sky, l_list, m_list, fname,
+                          title=None):
+    global output_directory
+
+    image_size = sky.shape[0]
+    circle_d = (5.0 / 180.0) * image_size
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(
+        sky,
+        # extent=[-1, 1, -1, 1],
+        vmin=0,
+    )  # vmax=8
+    fig.colorbar(im, ax=ax)
+
+    if title is not None:
+        ax.set_title(title)
+
+    for l, m in zip(l_list, m_list):
+        x, y = imaging.get_lm_index(l, m, image_size)
+        sv = plt.Circle((y, x), circle_d, color=(0.9, 0.2, 0.3), fill=False)
+        ax.add_patch(sv)
+
+    ax.set_xlabel("East-West")
+    ax.set_ylabel("North-South")
+    fig.tight_layout()
+    fig.savefig(os.path.join(output_directory, fname))
+
+
 def bh_callback(x, f, accepted):
     global output_directory, bh_basin_progress, N_IT, ift_scaled_list, mask_list
     global ret_zone, ret_std, in_zone, myParam
@@ -408,59 +427,20 @@ def bh_callback(x, f, accepted):
 
         for i, mask in enumerate(mask_list):
             ift_sel = ift_scaled_list[i] * mask
-            x_list, y_list = elaz.get_source_coordinates(good_source_lists[i])
+            l_list, m_list = elaz.get_source_coordinates(good_source_lists[i])
 
-            plt.figure()
-            plt.imshow(
-                ift_sel,
-                extent=[-1, 1, -1, 1],
-                vmin=0,
-            )  # vmax=8
-            plt.colorbar()
-            plt.xlim(1, -1)
-            plt.ylim(-1, 1)
-            plt.scatter(x_list, y_list, c="red", s=5)
-            plt.xlabel("East-West")
-            plt.ylabel("North-South")
-            plt.tight_layout()
-            fname = f"mask_{-f:5.3f}_{N_IT:05d}_{i}.png"
-            plt.savefig(os.path.join(output_directory, fname))
-            plt.close()
+            # plot_sky_with_sources(ift_sel, l_list, m_list,
+            #                       fname=f"mask_{-f:5.3f}_{N_IT:05d}_{i}.png")
 
-            plt.figure()
-            plt.imshow(
-                ift_scaled_list[i]*full_sky_masks[i],
-                extent=[-1, 1, -1, 1],
-                vmin=0,
-            )  # vmax=8
-            plt.colorbar()
-            plt.xlim(1, -1)
-            plt.ylim(-1, 1)
-            plt.scatter(x_list, y_list, c="red", s=5)
-            plt.xlabel("East-West")
-            plt.ylabel("North-South")
-            plt.tight_layout()
-            fname = f"full_sky_mask_{-f:5.3f}_{N_IT:05d}_{i}.png"
-            plt.savefig(os.path.join(output_directory, fname))
-            plt.close()
+            plot_sky_with_sources(ift_scaled_list[i]*full_sky_masks[i],
+                                  l_list, m_list,
+                                  fname=f"full_sky_mask_{-f:5.3f}_{N_IT:05d}_{i}.png")
 
-            plt.figure()
-            plt.imshow(
-                ift_scaled_list[i],
-                extent=[-1, 1, -1, 1],
-                vmin=0,
-            )  # vmax=8
-            plt.colorbar()
-            plt.xlim(1, -1)
-            plt.ylim(-1, 1)
-            plt.title(f"f={f:4.2f} i={i} r={np.degrees(myParam.rot_rad):4.2f}")
-            plt.scatter(x_list, y_list, c="red", s=5)
-            plt.xlabel("East-West")
-            plt.ylabel("North-South")
-            plt.tight_layout()
-            fname = f"{method}_{f:5.3f}_accepted_{N_IT:05d}_{i}.png"
-            plt.savefig(os.path.join(output_directory, fname))
-            plt.close()
+            # title = f"f={f:4.2f} i={i} r={np.degrees(myParam.rot_rad):4.2f}"
+            # plot_sky_with_sources(ift_scaled_list[i],
+            #                       l_list, m_list,
+            #                       fname=f"{method}_{f:5.3f}_accepted_{N_IT:05d}_{i}.png",
+            #                       title=title)
 
 
 def de_callback(xk, convergence):
@@ -677,9 +657,9 @@ def main():
 
                 print(f"    {s} {good}")
         else:
-            # Remove satellites below elevation
+            # Keep satellites above elevation
             for s in src_list:
-                if np.degrees(s.el_r) > ARGS.elevation:
+                if np.degrees(s.el_r) >= ARGS.elevation:
                     good_src_list.append(s)
 
         good_source_lists.append(good_src_list)

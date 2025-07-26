@@ -14,7 +14,7 @@ def add_source(mask, src, radius_deg):
 
     logger.info(f"    add_source {src}")
 
-    y0, x0 = src.get_px(image_size)
+    x0, y0 = src.get_px(image_size)
     r_pix = imaging.deg_to_pix(image_size, radius_deg)**2
     for y in range(image_size):
         for x in range(image_size):

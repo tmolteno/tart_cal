@@ -4,8 +4,8 @@ do
         TARGET=mu-udm \
         TART_CAL_ARGS="--get-gains --corr-only" \
         TART_GET_DATA=1 \
-        TART_NCAL=4 \
-        TART_CAL_INT=13 \
+        TART_NCAL=2 \
+        TART_CAL_INT=7 \
         TART_CAL_ITERATIONS=1000 \
         TART_CAL_ELEVATION=45 \
         TART_CAL_POINTING=0 \
