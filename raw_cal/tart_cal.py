@@ -346,6 +346,7 @@ def calc_score_aux(opt_parameters, measurements, window_radius_deg, original_pos
     )
 
 
+
 def calc_score(
     opt_parameters,
     config,
@@ -406,6 +407,7 @@ def plot_sky_with_sources(sky, l_list, m_list, fname,
     ax.set_ylabel("North-South")
     fig.tight_layout()
     fig.savefig(os.path.join(output_directory, fname))
+    plt.close()
 
 
 def bh_callback(x, f, accepted):

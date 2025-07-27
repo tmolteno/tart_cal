@@ -26,7 +26,7 @@ COPY README.md .
 COPY pyproject.toml .
 # COPY poetry.lock .
 RUN ls -rl
-RUN poetry install --no-dev
+RUN poetry install --without=dev
 # setup working directory
 WORKDIR /work
 
