@@ -1,4 +1,4 @@
-# Create a docker file for the calibration process.. 
+# Create a docker file for the calibration process..
 # NOTE. This script executes the calibration process only once.
 #
 #  Author. Tim Molteno. tim@elec.ac.nz (c) 2018-2022.
@@ -24,7 +24,7 @@ WORKDIR /app
 COPY raw_cal raw_cal
 COPY README.md .
 COPY pyproject.toml .
-COPY poetry.lock .
+# COPY poetry.lock .
 RUN ls -rl
 RUN poetry install --no-dev
 # setup working directory
