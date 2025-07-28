@@ -56,16 +56,16 @@ class Param:
 
     def to_json(self):
         ret = {
-            "gain": np.round(self.gains, 4).tolist(),
-            "rot_degrees": float(np.degrees(self.rot_rad)),
-            "phase_offset": np.round(self.phase_offsets, 4).tolist(),
+            "gain": np.round(self.gains, 3).tolist(),
+            "rot_degrees": float(np.round(np.degrees(self.rot_rad), 3)),
+            "phase_offset": np.round(self.phase_offsets, 3).tolist(),
         }
         return ret
 
     def output(self, fp=None):
         ret = self.to_json()
         if fp is None:
-            print(json.dumps(ret, indent=4))
+            print(json.dumps(ret))
         else:
             json.dump(ret, fp, indent=4, separators=(",", ": "))
 
@@ -324,11 +324,11 @@ def calc_score_aux(opt_parameters, measurements, window_radius_deg, original_pos
         # This is an attempt to avoid bright unknown sources from skewing
         # the phases towards it.
         masked_img = mask_list[i]*ift_scaled
-        in_zone = np.sum((masked_img)) / mask_sums[i]
+        in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         # outmask_img = inv_masks[i]*ift_scaled
         # out_zone = np.median(outmask_img)
 
-        zone_score = (in_zone)**3
+        zone_score = (1.75*in_zone)**3
 
         ret_zone += -zone_score
 
@@ -568,7 +568,7 @@ def main():
 
     data_dir = ARGS.data
     json_files = [f for f in glob.glob(f"{data_dir}/cal*.json")]
-    raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
+    raw_files = [f for f in glob.glob(f"{data_dir}/data_*.hdf")]
 
     print(json_files)
     with open(json_files[0]) as json_file:
@@ -576,6 +576,7 @@ def main():
 
     info = calib_info["info"]
     ant_pos = calib_info["ant_pos"]
+
     config = settings.from_api_json(info["info"], ant_pos)
 
     flag_list = ARGS.ignore

@@ -26,12 +26,13 @@ COPY README.md .
 COPY pyproject.toml .
 # COPY poetry.lock .
 RUN ls -rl
-RUN poetry install --no-dev
+RUN poetry install --without dev
 # setup working directory
 WORKDIR /work
 
 # Add the calibrate script.
 ADD tart_calibrate.sh /tart_calibrate.sh
-ADD do_raw_cal.sh /raw_calibrate.sh
+# ADD do_raw_cal.sh /raw_calibrate.sh
+ADD archive_calibrate.sh /raw_calibrate.sh
 
 # CMD sh /tart_calibrate.sh

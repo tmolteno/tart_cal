@@ -13,6 +13,8 @@ def check_source(src, el_deg, jy_limit):
     print(f"check_source({src}, {el_deg})")
     if 'EGNOS' in src['name']:
         return False
+    if 'C05' in src['name']:
+        return False
     if 'GAGAN' in src['name']:
         return False
     if src['el'] < el_deg:

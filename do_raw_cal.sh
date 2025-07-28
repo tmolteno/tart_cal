@@ -54,7 +54,7 @@ if [ ${TART_GET_DATA} == 1 ]; then
     mkdir -p ${OUTPUT_DIR}
     mkdir -p ${DATA_DIR}
     rm -rf ${DATA_DIR}/*
-    get_cal_data --api ${TART_API} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
+    get_cal_data --raw --target ${TARGET} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 fi
 
 
