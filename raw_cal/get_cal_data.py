@@ -158,7 +158,7 @@ def main():
         default="https://tart.elec.ac.nz/catalog",
         help="Catalog API URL."
     )
-
+    PARSER.add_argument('--raw', action='store_true', help="Download raw data")
     ARGS = PARSER.parse_args()
 
     os.makedirs(ARGS.dir, exist_ok=True)
@@ -176,7 +176,8 @@ def main():
         api = api_handler.AuthorizedAPIhandler(ARGS.api, ARGS.pw)
 
         vis_json, src_json = load_data(api, config)  # Get Calibration Data
-        get_raw_data(api, config, vis_json, ARGS.dir)
+        if ARGS.raw:
+            get_raw_data(api, config, vis_json, ARGS.dir)
         data.append([vis_json, src_json])
         if i != ARGS.n - 1:
             logger.info(f"Sleeping {ARGS.interval} minutes")

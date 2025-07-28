@@ -24,7 +24,7 @@ from tart.operation import settings
 
 from .mask_image import add_source as mask_add_source
 
-from .calibration_data import find_good_satellites, load_cal_files
+from .calibration_data import find_good_satellites, load_cal_files, check_source
 from .pos_from_gps import get_gnss_data
 
 matplotlib.use("agg")
@@ -65,7 +65,7 @@ class Param:
     def output(self, fp=None):
         ret = self.to_json()
         if fp is None:
-            print(json.dumps(ret, indent=4, separators=(",", ": ")))
+            print(json.dumps(ret, indent=4))
         else:
             json.dump(ret, fp, indent=4, separators=(",", ": "))
 
@@ -406,7 +406,7 @@ def plot_sky_with_sources(sky, l_list, m_list, fname,
     ax.set_ylabel("North-South")
     fig.tight_layout()
     fig.savefig(os.path.join(output_directory, fname))
-
+    plt.close()
 
 def bh_callback(x, f, accepted):
     global output_directory, bh_basin_progress, N_IT, ift_scaled_list, mask_list
@@ -614,28 +614,31 @@ def main():
     mask_list = [None] * len(measurements)
     full_sky_masks = [None] * len(measurements)
 
+    test_gains = np.ones_like(gains)
+
     # Acquisition to get expected list of SV's
-    fname = f"{data_dir}/gps_acquisition.json"
-    full_acquisition_data = get_gnss_data(measurements, fname)
+    if ARGS.corr_only:
+        fname = f"{data_dir}/gps_acquisition.json"
+        full_acquisition_data = get_gnss_data(measurements, fname)
 
-    # Use the standard deviation of the phases to determine whether the SV is visible.
-    print("Finding visible satellites")
-    good_satellites, best_acq = find_good_satellites(full_acquisition_data)
+        # Use the standard deviation of the phases to determine whether the SV is visible.
+        print("Finding visible satellites")
+        good_satellites, best_acq = find_good_satellites(full_acquisition_data)
 
-    # Find the best SV and record its index.
-    best_sv = np.argmax(best_acq)
+        # Find the best SV and record its index.
+        best_sv = np.argmax(best_acq)
 
-    test_gains = best_acq / best_acq[best_sv]
-    print(f"test_gains = {test_gains}")
-    test_gains[test_gains < 0.1] = 0.1
+        test_gains = best_acq / best_acq[best_sv]
+        print(f"test_gains = {test_gains}")
+        test_gains[test_gains < 0.1] = 0.1
 
-    test_gains = 1.0 / (test_gains)
+        test_gains = 1.0 / (test_gains)
 
-    test_gains[test_gains > 3] = 3
+        test_gains[test_gains > 3] = 3
 
-    # These factors would make all SV appear equal brightness.
-    # test_gains = np.ones(NANT)
-    print(f"Estimated gains: {test_gains}")
+        # These factors would make all SV appear equal brightness.
+        # test_gains = np.ones(NANT)
+        print(f"Estimated gains: {test_gains}")
 
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
@@ -659,8 +662,7 @@ def main():
         else:
             # Keep satellites above elevation
             for s in src_list:
-                if np.degrees(s.el_r) >= ARGS.elevation:
-                    good_src_list.append(s)
+                good_src_list.append(s)
 
         good_source_lists.append(good_src_list)
         print(f"Source List [{i}]")
