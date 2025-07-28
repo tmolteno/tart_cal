@@ -1,6 +1,6 @@
 [project]
 name = "raw_cal"
-version = "0.4.10"
+version = "0.5.1"
 description = "TART Radio Telescope Calibration"
 authors = [
     {name = "Tim Molteno",email = "tim@molteno.net"}
