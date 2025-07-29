@@ -12,9 +12,13 @@ import time
 import urllib.parse
 
 import numpy as np
+
+from tart.imaging import visibility
 from tart.operation import settings
 from tart.util import utc
+
 from tart_tools import api_handler, api_imaging
+from tart_tools.archive_handler import handle_archive_request
 
 logger = logging.getLogger()
 
@@ -26,6 +30,14 @@ def set_vis_mode(api):
     except Exception as e:
         logger.exception(e)
         logger.error("Error in setting vis_mode")
+
+
+def get_catalogue_json(api, config, ts):
+    cat_url = api.catalog_url(lon=config.get_lon(),
+                              lat=config.get_lat(),
+                              datestr=utc.to_string(ts))
+    logger.info(f"Getting catalog from {cat_url}")
+    return api.get_url(cat_url)
 
 
 def load_data(api, config):
@@ -40,11 +52,7 @@ def load_data(api, config):
     logger.info(f"utcnow = {utc.now()}")
     logger.info(f"URL ts {utc.to_string(ts)}")
 
-    cat_url = api.catalog_url(lon=config.get_lon(),
-                              lat=config.get_lat(),
-                              datestr=utc.to_string(ts))
-    logger.info(f"Getting catalog from {cat_url}")
-    src_json = api.get_url(cat_url)
+    src_json = get_catalogue_json(api, config, ts)
     logger.info("Loading Complete")
     return vis_json, src_json
 
@@ -124,9 +132,9 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     PARSER.add_argument(
-        "--api",
+        "--target",
         required=True,
-        help="Telescope API server URL.",
+        help="Telescope TART name.",
     )
     PARSER.add_argument(
         "--file",
@@ -158,30 +166,71 @@ def main():
         default="https://tart.elec.ac.nz/catalog",
         help="Catalog API URL."
     )
+    PARSER.add_argument('--raw', action='store_true', help="Download raw data")
+    PARSER.add_argument('--archive', action='store_true', help="Get data from the archive")
 
     ARGS = PARSER.parse_args()
 
     os.makedirs(ARGS.dir, exist_ok=True)
 
-    api = api_handler.APIhandler(ARGS.api)
+    api_url = f"https://api.elec.ac.nz/tart/{ARGS.target}"
+    api = api_handler.APIhandler(api_url)
 
-    info = api.get("info")
-    ant_pos = api.get("imaging/antenna_positions")
-    config = settings.from_api_json(info["info"], ant_pos)
-    gains_json = api.get("calibration/gain")
+    ret = {}
+    if ARGS.archive:
+        duration = max(1, ((ARGS.n-1) * ARGS.interval))
+        handle_archive_request(target=ARGS.target,
+                               num_observations=ARGS.n,
+                               output_dir=ARGS.dir,
+                               start_str=f"-{duration}",
+                               duration_str=f"{duration}")
 
-    ret = {"info": info, "ant_pos": ant_pos, "gains": gains_json}
-    data = []
-    for i in range(ARGS.n):
-        api = api_handler.AuthorizedAPIhandler(ARGS.api, ARGS.pw)
+        info = api.get("info")
+        ant_pos = api.get("imaging/antenna_positions")
+        config = settings.from_api_json(info["info"], ant_pos)
+        gains_json = api.get("calibration/gain")
+        ret = {"info": info, "ant_pos": ant_pos, "gains": gains_json}
 
-        vis_json, src_json = load_data(api, config)  # Get Calibration Data
-        get_raw_data(api, config, vis_json, ARGS.dir)
-        data.append([vis_json, src_json])
-        if i != ARGS.n - 1:
-            logger.info(f"Sleeping {ARGS.interval} minutes")
-            time.sleep(ARGS.interval * 60)
-    ret["data"] = data
+        data = []
+        for i in range(ARGS.n):
+            fname = f"obs_{i:05d}.hdf"
+            fpath = os.path.join(ARGS.dir, fname)
+            vis = visibility.from_hdf5(fpath)
+            # ret["vis_list"] = vis_list
+            # ret["config_json"] = config_json
+            # ret["config"] = config
+            # ret["ant_pos"] = ant_pos
+            # ret["timestamps"] = timestamps
+            # ret["baselines"] = hdf_baselines
+            # ret["gain"] = h5f["gains"][:]
+            # ret["phase_offset"] = h5f["phases"][:]
+            ts = vis['timestamps'][0]
+            vis_json = vis["vis_list"][0].to_json()
+            src_json = get_catalogue_json(api, config, ts)
+            data.append([vis_json, src_json])
+        ret["data"] = data
+    else:
+
+        info = api.get("info")
+        ant_pos = api.get("imaging/antenna_positions")
+        config = settings.from_api_json(info["info"], ant_pos)
+        gains_json = api.get("calibration/gain")
+
+        ret = {"info": info, "ant_pos": ant_pos, "gains": gains_json}
+
+        data = []
+        for i in range(ARGS.n):
+            api = api_handler.AuthorizedAPIhandler(api_url, ARGS.pw)
+
+            vis_json, src_json = load_data(api, config)  # Get Calibration Data
+            if ARGS.raw:
+                get_raw_data(api, config, vis_json, ARGS.dir)
+            data.append([vis_json, src_json])
+            if i != ARGS.n - 1:
+                logger.info(f"Sleeping {ARGS.interval} minutes")
+                time.sleep(ARGS.interval * 60)
+
+        ret["data"] = data
 
     with open(f"{ARGS.dir}/{ARGS.file}", "w") as fp:
         json.dump(ret, fp, indent=4, separators=(",", ": "))

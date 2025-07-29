@@ -54,7 +54,9 @@ if [ ${TART_GET_DATA} == 1 ]; then
     mkdir -p ${OUTPUT_DIR}
     mkdir -p ${DATA_DIR}
     rm -rf ${DATA_DIR}/*
-    get_cal_data --raw --target ${TARGET} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
+
+
+    get_cal_data --archive --target ${TARGET} --pw ${TART_LOGIN_PW} --n ${TART_NCAL} --interval ${TART_CAL_INT} --dir ${DATA_DIR}
 fi
 
 
@@ -68,7 +70,7 @@ raw_calibrate --api ${TART_API}  \
             --data ${DATA_DIR}  \
             ${TART_CAL_ARGS} \
             --dir ${OUTPUT_DIR}
-# 
+#
 CALIB_OUTPUT=${OUTPUT_DIR}/BH_opt_json.json
 echo "##"
 echo "## Calibration output is in ${CALIB_OUTPUT}"

@@ -9,6 +9,42 @@ from tart_tools import api_imaging
 logger = logging.getLogger()
 
 
+def check_source(src, el_deg, jy_limit):
+    print(f"check_source({src}, {el_deg})")
+    if 'LUCH' in src['name']:
+        return False
+    if 'EGNOS' in src['name']:
+        return False
+    if 'EUTELSAT' in src['name']:
+        return False
+    if 'GAGAN' in src['name']:
+        return False
+    if 'IGSO' in src['name']:
+        return False
+    if 'BEIDOU-2 G' in src['name']:
+        return False
+    if 'BEIDOU-3 G' in src['name']:
+        return False
+    if src['el'] < el_deg:
+        return False
+    if src["jy"] < jy_limit:
+        return False
+    return True
+
+
+def src_list_from_catalog_json(source_json, el_limit_deg=0.0, jy_limit=1e5):
+    src_list = []
+    for src in source_json:
+        try:
+            if check_source(src, el_deg=el_limit_deg, jy_limit=jy_limit):
+                src_list.append(elaz.ElAz(src["el"], src["az"]))
+        except Exception as e:
+            print(f"ERROR in catalog src={src}")
+            print(f"{e}")
+
+    return src_list
+
+
 def load_data_from_json(vis_json, src_json,
                         config, gains, phases, flag_list, el_threshold):
     logger.info("Loading data from JSON")
@@ -16,7 +52,8 @@ def load_data_from_json(vis_json, src_json,
     cv, ts = api_imaging.vis_calibrated(vis_json, config,
                                         gains, phases, flag_list)
     logger.info(f"    ts = {ts}")
-    _src_list = elaz.from_json(src_json, el_threshold)
+    _src_list = src_list_from_catalog_json(src_json, el_threshold)
+
     return cv, ts, _src_list
 
 
@@ -50,10 +87,7 @@ def load_cal_files(raw_files,
                    config,
                    elevation_threshold):
 
-    # Load the raw observations
-    raw_obs = []
-    for raw_file in raw_files:
-        raw_obs.append(observation.Observation_Load(raw_file))
+    # Load the raw observations\
 
     n = config.get_num_antenna()
 
@@ -86,22 +120,24 @@ def load_cal_files(raw_files,
 
         # Find best raw observation, with the closest timestamp
         obs = None
-        best_dt = 9e99
-        print(f"Vis timestamp {cv.get_timestamp()}")
-        for o in raw_obs:
-            dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
-            print(f"   raw obs.ts = {o.timestamp} dt={dt}")
-            if dt < best_dt:
-                best_dt = dt
-                obs = o
+        if len(raw_files) > 0:
+            raw_obs = [observation.Observation_Load(f) for f in raw_files]
+            best_dt = 9e99
+            logger.info(f"Vis timestamp {cv.get_timestamp()}")
+            for o in raw_obs:
+                dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
+                logger.info(f"   raw obs.ts = {o.timestamp} dt={dt}")
+                if dt < best_dt:
+                    best_dt = dt
+                    obs = o
 
-        if (best_dt > 72):
-            raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
+            if (best_dt > 72):
+                raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
 
-        corr = correlator.Correlator()
-        vis = corr.correlate(obs)
-        print(f"Timestamp: {vis.timestamp}")
-        print(f"Config: {vis.config.Dict}")
+            corr = correlator.Correlator()
+            vis = corr.correlate(obs)
+            logger.info(f"Timestamp: {vis.timestamp}")
+            logger.info(f"Config: {vis.config.Dict}")
 
         measurements.append([cv, ts, src_list, prn_list, obs])
 
@@ -143,77 +179,22 @@ def find_good_satellites(full_acquisition_data):
 
                 best_acq[good] += st[good]
                 n_obs += 1
-            print(f"    Source: {int(d):02d}, stability: {std_ph:06.5f}, {np.mean(st):05.2f} {acq['sv']}")
+            logger.info(f"    Source: {int(d):02d}, stability: {std_ph:06.5f}, {np.mean(st):05.2f} {acq['sv']}")
 
         if n_obs == 0:
             raise RuntimeError(f"No satellites visible in obs[{i}]")
 
-        print("Good Satellites obs[{i}]")
+        logger.info("Good Satellites obs[{i}]")
         for s in good_satellites:
-            print(f"    {s}")
+            logger.info(f"    {s}")
 
     n += n_obs
 
     best_acq = best_acq / n
     sv_noise = sv_noise / n
     s_n = best_acq / sv_noise
-    print(f"Best acw {best_acq}")
-    print(f"Noise level {s_n}")
+    logger.info(f"Best acw {best_acq}")
+    logger.info(f"Noise level {s_n}")
     return good_satellites, best_acq
 
 
-def load_raw_data(raw_files):
-    raw_obs = []
-    for raw_file in raw_files:
-        raw_obs.append(observation.Observation_Load(raw_file))
-
-    for d in calib_info["data"]:
-        vis_json, src_json = d
-        cv, ts, src_list = load_data_from_json(
-            vis_json,
-            src_json,
-            config,
-            gains,
-            phase_offsets,
-            flag_list,
-            el_threshold=ARGS.elevation,
-        )
-        print(f"ts = {ts}")
-        prn_list = []
-        for sv in src_json:
-            prn = sv['name'].split('PRN ')
-            if len(prn) < 2:
-                continue
-
-            prn = prn[1].split(')')[0]
-
-            try:
-                prn_list.append((int(prn), sv))
-            except:
-                logger.info(f"Ignoring: {prn}")
-
-        # Find best raw observation, with the closest timestamp
-        obs = None
-        best_dt = 9e99
-        logger.info(f"Vis timestamp {cv.get_timestamp()}")
-        for o in raw_obs:
-            dt = np.abs((o.timestamp - cv.get_timestamp()).total_seconds())
-            logger.info(f"   raw obs.ts = {o.timestamp} dt={dt}")
-            if dt < best_dt:
-                best_dt = dt
-                obs = o
-
-        if (best_dt > 100):
-            raise RuntimeError(f"Broken timestamps dt={best_dt} obs={obs.timestamp} vc={cv.get_timestamp()}")
-
-        corr = correlator.Correlator()
-        vis = corr.correlate(obs)
-        logger.info(f"Timestamp: {vis.timestamp}")
-        logger.info(f"Config: {vis.config.Dict}")
-
-        measurements.append([cv, ts, src_list, prn_list, obs])
-        inv_masks.append(None)
-        mask_sums.append(None)
-
-        if len(measurements) >= ARGS.num_meas:
-            break

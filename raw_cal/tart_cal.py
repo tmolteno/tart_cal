@@ -24,7 +24,7 @@ from tart.operation import settings
 
 from .mask_image import add_source as mask_add_source
 
-from .calibration_data import find_good_satellites, load_cal_files
+from .calibration_data import find_good_satellites, load_cal_files, check_source
 from .pos_from_gps import get_gnss_data
 
 matplotlib.use("agg")
@@ -56,16 +56,16 @@ class Param:
 
     def to_json(self):
         ret = {
-            "gain": np.round(self.gains, 4).tolist(),
-            "rot_degrees": float(np.degrees(self.rot_rad)),
-            "phase_offset": np.round(self.phase_offsets, 4).tolist(),
+            "gain": np.round(self.gains, 3).tolist(),
+            "rot_degrees": float(np.round(np.degrees(self.rot_rad), 3)),
+            "phase_offset": np.round(self.phase_offsets, 3).tolist(),
         }
         return ret
 
     def output(self, fp=None):
         ret = self.to_json()
         if fp is None:
-            print(json.dumps(ret, indent=4, separators=(",", ": ")))
+            print(json.dumps(ret))
         else:
             json.dump(ret, fp, indent=4, separators=(",", ": "))
 
@@ -324,11 +324,11 @@ def calc_score_aux(opt_parameters, measurements, window_radius_deg, original_pos
         # This is an attempt to avoid bright unknown sources from skewing
         # the phases towards it.
         masked_img = mask_list[i]*ift_scaled
-        in_zone = np.sum((masked_img)) / mask_sums[i]
+        in_zone = np.sum(np.sqrt(masked_img)) / mask_sums[i]
         # outmask_img = inv_masks[i]*ift_scaled
         # out_zone = np.median(outmask_img)
 
-        zone_score = (in_zone)**3
+        zone_score = (1.75*in_zone)**3
 
         ret_zone += -zone_score
 
@@ -570,7 +570,7 @@ def main():
 
     data_dir = ARGS.data
     json_files = [f for f in glob.glob(f"{data_dir}/cal*.json")]
-    raw_files = [f for f in glob.glob(f"{data_dir}/*.hdf")]
+    raw_files = [f for f in glob.glob(f"{data_dir}/data_*.hdf")]
 
     print(json_files)
     with open(json_files[0]) as json_file:
@@ -578,6 +578,8 @@ def main():
 
     info = calib_info["info"]
     ant_pos = calib_info["ant_pos"]
+    gains_json = calib_info["gains"]
+
     config = settings.from_api_json(info["info"], ant_pos)
 
     flag_list = ARGS.ignore
@@ -590,8 +592,7 @@ def main():
 
     original_positions = deepcopy(config.get_antenna_positions())
 
-    gains_json = calib_info["gains"]
-
+    # Set up the gains
     g_json = gains_json["gain"]
     logger.info(f"Gains JSON: {g_json}")
     gains = np.asarray(g_json)
@@ -603,8 +604,8 @@ def main():
     if ARGS.cold_start and ARGS.get_gains:
         raise Exception("ERROR: Cannot Have both cold-start and get-gains specified")
 
-    config = settings.from_api_json(info["info"], ant_pos)
-
+    # config = settings.from_api_json(info["info"], ant_pos)
+    #
     pointing_error = np.radians(ARGS.pointing_range)
     pointing_center = np.radians(ARGS.pointing)
 
@@ -617,27 +618,29 @@ def main():
     full_sky_masks = [None] * len(measurements)
 
     # Acquisition to get expected list of SV's
-    fname = f"{data_dir}/gps_acquisition.json"
-    full_acquisition_data = get_gnss_data(measurements, fname)
+    if ARGS.corr_only:
+        fname = f"{data_dir}/gps_acquisition.json"
+        full_acquisition_data = get_gnss_data(measurements, fname)
 
-    # Use the standard deviation of the phases to determine whether the SV is visible.
-    print("Finding visible satellites")
-    good_satellites, best_acq = find_good_satellites(full_acquisition_data)
+        # Use the standard deviation of the phases to determine whether the SV is visible.
+        print("Finding visible satellites")
+        good_satellites, best_acq = find_good_satellites(full_acquisition_data)
 
-    # Find the best SV and record its index.
-    best_sv = np.argmax(best_acq)
+        # Find the best SV and record its index.
+        best_sv = np.argmax(best_acq)
 
-    test_gains = best_acq / best_acq[best_sv]
-    print(f"test_gains = {test_gains}")
-    test_gains[test_gains < 0.1] = 0.1
+        test_gains = best_acq / best_acq[best_sv]
+        print(f"test_gains = {test_gains}")
+        test_gains[test_gains < 0.1] = 0.1
 
-    test_gains = 1.0 / (test_gains)
+        test_gains = 1.0 / (test_gains)
 
-    test_gains[test_gains > 3] = 3
+        test_gains[test_gains > 3] = 3
 
-    # These factors would make all SV appear equal brightness.
-    # test_gains = np.ones(NANT)
-    print(f"Estimated gains: {test_gains}")
+        gains = test_gains
+        # These factors would make all SV appear equal brightness.
+        # test_gains = np.ones(NANT)
+        print(f"Estimated gains: {test_gains}")
 
     # Now remove satellites from the catalog that we can't see.
     # https://github.com/JasonNg91/GNSS-SDR-Python/tree/master/gnsstools
@@ -661,8 +664,7 @@ def main():
         else:
             # Keep satellites above elevation
             for s in src_list:
-                if np.degrees(s.el_r) >= ARGS.elevation:
-                    good_src_list.append(s)
+                good_src_list.append(s)
 
         good_source_lists.append(good_src_list)
         print(f"Source List [{i}]")
@@ -670,12 +672,12 @@ def main():
             print(f"    {s}")
 
     if ARGS.cold_start:
-        test_gains = np.ones(len(gains_json["gain"]))
-        phase_offsets = np.zeros(len(gains_json["phase_offset"]))
+        gains = np.ones_like(gains)
+        phase_offsets = np.zeros_like(phase_offsets)
 
     if ARGS.phases:
         print("Using PHASES")
-        myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)
+        myParam = ParamPhase(NANT, pointing_center, pointing_error, gains)
         myParam.rot_rad = pointing_center
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 1
@@ -684,9 +686,9 @@ def main():
     elif ARGS.gains_phases:
         print("Using GAINS_PHASES")
         myParam = ParamGainPhase(NANT, pointing_center,
-                                 pointing_error, test_gains)
+                                 pointing_error, gains)
         myParam.rot_rad = pointing_center
-        myParam.gains = test_gains
+        myParam.gains = gains
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 0.2
         bh_T = 0.4
@@ -700,7 +702,7 @@ def main():
         bh_stepsize = 1
         bh_T = 0.5
 
-    bounds = myParam.bounds(test_gains)
+    bounds = myParam.bounds(gains)
     print(f"Bounds {bounds}")
 
     myParam.output()
