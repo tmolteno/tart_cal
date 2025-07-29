@@ -178,7 +178,7 @@ def main():
 
     ret = {}
     if ARGS.archive:
-        duration = ARGS.n * ARGS.interval
+        duration = max(1, ((ARGS.n-1) * ARGS.interval))
         handle_archive_request(target=ARGS.target,
                                num_observations=ARGS.n,
                                output_dir=ARGS.dir,

@@ -11,11 +11,19 @@ logger = logging.getLogger()
 
 def check_source(src, el_deg, jy_limit):
     print(f"check_source({src}, {el_deg})")
+    if 'LUCH' in src['name']:
+        return False
     if 'EGNOS' in src['name']:
         return False
-    if 'C05' in src['name']:
+    if 'EUTELSAT' in src['name']:
         return False
     if 'GAGAN' in src['name']:
+        return False
+    if 'IGSO' in src['name']:
+        return False
+    if 'BEIDOU-2 G' in src['name']:
+        return False
+    if 'BEIDOU-3 G' in src['name']:
         return False
     if src['el'] < el_deg:
         return False
