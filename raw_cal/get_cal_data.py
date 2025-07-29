@@ -195,7 +195,6 @@ def main():
         for i in range(ARGS.n):
             fname = f"obs_{i:05d}.hdf"
             fpath = os.path.join(ARGS.dir, fname)
-            # Load some vis from the HDF file
             vis = visibility.from_hdf5(fpath)
             # ret["vis_list"] = vis_list
             # ret["config_json"] = config_json
@@ -205,15 +204,6 @@ def main():
             # ret["baselines"] = hdf_baselines
             # ret["gain"] = h5f["gains"][:]
             # ret["phase_offset"] = h5f["phases"][:]
-            if i == 0:
-                ant_pos = vis['ant_pos']
-                print(f"ant_pos = {ant_pos.shape}")
-                # config = vis['config']
-                # gains_json = {'gain': vis['gain'].tolist(),
-                #               'phase_offset': vis['phase_offset'].tolist()}
-                # ret["ant_pos"] = ant_pos.tolist(),
-                # ret["gains"] = gains_json
-
             ts = vis['timestamps'][0]
             vis_json = vis["vis_list"][0].to_json()
             src_json = get_catalogue_json(api, config, ts)

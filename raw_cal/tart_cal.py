@@ -576,6 +576,7 @@ def main():
 
     info = calib_info["info"]
     ant_pos = calib_info["ant_pos"]
+    gains_json = calib_info["gains"]
 
     config = settings.from_api_json(info["info"], ant_pos)
 
@@ -589,8 +590,7 @@ def main():
 
     original_positions = deepcopy(config.get_antenna_positions())
 
-    gains_json = calib_info["gains"]
-
+    # Set up the gains
     g_json = gains_json["gain"]
     logger.info(f"Gains JSON: {g_json}")
     gains = np.asarray(g_json)
@@ -602,8 +602,8 @@ def main():
     if ARGS.cold_start and ARGS.get_gains:
         raise Exception("ERROR: Cannot Have both cold-start and get-gains specified")
 
-    config = settings.from_api_json(info["info"], ant_pos)
-
+    # config = settings.from_api_json(info["info"], ant_pos)
+    #
     pointing_error = np.radians(ARGS.pointing_range)
     pointing_center = np.radians(ARGS.pointing)
 
@@ -614,8 +614,6 @@ def main():
     mask_sums = [None] * len(measurements)
     mask_list = [None] * len(measurements)
     full_sky_masks = [None] * len(measurements)
-
-    test_gains = np.ones_like(gains)
 
     # Acquisition to get expected list of SV's
     if ARGS.corr_only:
@@ -637,6 +635,7 @@ def main():
 
         test_gains[test_gains > 3] = 3
 
+        gains = test_gains
         # These factors would make all SV appear equal brightness.
         # test_gains = np.ones(NANT)
         print(f"Estimated gains: {test_gains}")
@@ -671,12 +670,12 @@ def main():
             print(f"    {s}")
 
     if ARGS.cold_start:
-        test_gains = np.ones(len(gains_json["gain"]))
-        phase_offsets = np.zeros(len(gains_json["phase_offset"]))
+        gains = np.ones_like(gains)
+        phase_offsets = np.zeros_like(phase_offsets)
 
     if ARGS.phases:
         print("Using PHASES")
-        myParam = ParamPhase(NANT, pointing_center, pointing_error, test_gains)
+        myParam = ParamPhase(NANT, pointing_center, pointing_error, gains)
         myParam.rot_rad = pointing_center
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 1
@@ -685,9 +684,9 @@ def main():
     elif ARGS.gains_phases:
         print("Using GAINS_PHASES")
         myParam = ParamGainPhase(NANT, pointing_center,
-                                 pointing_error, test_gains)
+                                 pointing_error, gains)
         myParam.rot_rad = pointing_center
-        myParam.gains = test_gains
+        myParam.gains = gains
         myParam.phase_offsets = phase_offsets
         bh_stepsize = 0.2
         bh_T = 0.4
@@ -701,7 +700,7 @@ def main():
         bh_stepsize = 1
         bh_T = 0.5
 
-    bounds = myParam.bounds(test_gains)
+    bounds = myParam.bounds(gains)
     print(f"Bounds {bounds}")
 
     myParam.output()
