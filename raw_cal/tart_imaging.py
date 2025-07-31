@@ -3,6 +3,7 @@ import torch
 
 from tart.imaging import imaging
 
+
 class Image:
 
     def __init__(self, pixels):

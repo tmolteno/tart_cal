@@ -17,14 +17,16 @@ dependencies = [
     "torch"
 ]
 
-[tool.poetry]
-packages = [{include = "raw_cal"}]
-
 [tool.poetry.scripts]
 raw_calibrate = "raw_cal.tart_cal:main"
 archive_calibrate = "raw_cal.tart_cal:main"
+torch_calibrate = "raw_cal.tart_cal_torch:main"
 pos_from_gps = "raw_cal.pos_from_gps:main"
 get_cal_data = "raw_cal.get_cal_data:main"
+
+[tool.poetry]
+packages = [{include = "raw_cal"}]
+
 
 
 [tool.poetry.dependencies]

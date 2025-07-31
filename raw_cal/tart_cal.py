@@ -24,7 +24,7 @@ from tart.operation import settings
 
 from .mask_image import add_source as mask_add_source
 
-from .calibration_data import find_good_satellites, load_cal_files, check_source
+from .calibration_data import find_good_satellites, load_cal_files
 from .pos_from_gps import get_gnss_data
 
 matplotlib.use("agg")
